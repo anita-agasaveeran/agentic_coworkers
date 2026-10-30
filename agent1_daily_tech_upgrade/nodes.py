@@ -37,7 +37,10 @@ def fetch_candidates(state: BriefState) -> dict:
 
 
 def dedupe_and_filter(state: BriefState) -> dict:
-    """Normalize URLs; drop seen, near-duplicate, non-allow-listed, undated, and out-of-window items.
+    """Normalize URLs; drop seen, near-duplicate, non-allow-listed, and out-of-window items.
+
+    Undated search results are kept (Tavily's start_date already bounds them); their date is
+    filled in by extract_full_text.
 
     Returns: {"filtered": [...]}
     """
@@ -73,6 +76,7 @@ def extract_full_text(state: BriefState) -> dict:
     """Link-check and fetch each selected article; fall back to the snippet when extraction fails.
 
     Unreachable URLs are replaced by the next-ranked candidate from `filtered`.
+    Fills `published` from load_page when the search result had no date; still undated -> replaced.
     Returns: {"selected": [...with full_text, word_count, text_source]}
     """
     raise NotImplementedError

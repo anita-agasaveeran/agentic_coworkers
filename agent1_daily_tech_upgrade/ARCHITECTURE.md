@@ -113,18 +113,23 @@ class BriefState(TypedDict):
 
 | Tool | Purpose |
 |---|---|
-| `fetch_feeds(sources, since)` | Reads RSS/Atom feeds with `feedparser`; returns normalized `Article` records. |
-| `search_web(query, domains, days)` | Tavily search restricted to the allow-listed domains and a recent time window, for sources without usable feeds. |
-| `search_arxiv(query, since)` | arXiv API for recent papers (cs.AI, cs.CL, cs.LG). |
-| `load_page(url)` | `requests` + BeautifulSoup main-content extraction (as in `LangGraph_LangChain_agents.ipynb`). |
+| `fetch_feeds(sources, since)` | Reads RSS/Atom feeds with `feedparser`; returns `Article` records with tracking params stripped. |
+| `search_web(query, sources, since)` | Tavily search restricted to the sources' domains and results since `since`, for sources without usable feeds. `published` may be `None`; filled from the page later. |
+| `search_arxiv(query, categories, since)` | arXiv API for recent papers, newest first; respects the 3-second rate limit and retries once on HTTP 429. |
+| `load_page(url)` | `requests` + BeautifulSoup main-content extraction (largest `<article>`, else `<main>`); also reads the publication date from meta tags. Returns `None` for blocked, non-HTML, or very short pages. |
+| `url_resolves(url)` | Link check. 401/403/429 count as resolving (the page exists but blocks scripts). |
 
-**Source allow-list with authority tiers** (stored in `sources.yaml`; feed URLs are checked when implementing):
+**Source allow-list with authority tiers** (stored in `sources.yaml`; feeds checked 2026-10-29):
 
-| Tier | Sources | Access method |
+| Tier | Source | Access method |
 |---|---|---|
-| 1 — Primary labs/vendors | OpenAI, Anthropic, Google (AI/Research/DeepMind), Microsoft (Research / Azure AI), AWS (ML blog), IBM Research, LangChain/LangGraph blog | RSS where available, otherwise Tavily with `include_domains` |
-| 1 — Research bodies | IEEE (Spectrum, Xplore), ACM (CACM, Queue), arXiv | RSS / arXiv API / Tavily |
-| 2 — Reputable engineering publications | e.g. Hugging Face blog, Meta AI, NVIDIA Technical Blog, The Gradient | RSS / Tavily |
+| 1 | OpenAI | RSS (pages return 403 to scripts, so summaries use the feed snippet) |
+| 1 | Google Research, Google AI blog, DeepMind | RSS (3 feeds) |
+| 1 | Microsoft Research, AWS ML Blog, IBM Research, LangChain/LangGraph, IEEE Spectrum (AI) | RSS |
+| 1 | Anthropic, ACM (CACM, Queue) | Tavily with `include_domains` (no feed / feeds return 403) |
+| 1 | arXiv (cs.AI, cs.CL, cs.LG, cs.IR) | arXiv API |
+| 2 | Hugging Face, NVIDIA Technical Blog | RSS |
+| 2 | Meta AI | Tavily (no feed) |
 
 ---
 
@@ -184,7 +189,7 @@ Think about: <one question>
 ## 9. Reliability and guardrails
 
 - **No invented references:** metadata comes only from tool results; `compose_brief` checks that every URL in the brief appears in `selected`.
-- **Link check:** an HTTP HEAD/GET on each selected URL before summarizing; unreachable links are swapped for the next-ranked candidate.
+- **Link check:** an HTTP HEAD/GET on each selected URL before summarizing; broken links (404/410, 5xx, no connection) are swapped for the next-ranked candidate. Pages that block scripts (403) are kept and summarized from the feed snippet.
 - **Grounded summaries:** the summarization prompt includes only the extracted text; if extraction failed, the card is labeled "summary based on abstract/snippet".
 - **Fallbacks:** feed failure → Tavily only; Tavily failure → feeds only; < 3 results after retries → publish fewer articles with a note instead of padding.
 - **Tracing:** LangSmith tracing enabled for debugging and evaluation.

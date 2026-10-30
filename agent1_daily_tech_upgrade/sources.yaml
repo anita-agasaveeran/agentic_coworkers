@@ -1,71 +1,72 @@
 # Allow-listed sources for DailyTechUpgradeAgent.
 #
 # tier:    1 = primary labs/vendors and research bodies, 2 = reputable engineering publications
-# feeds:   RSS/Atom URLs. Empty list -> the source is covered by domain-restricted Tavily search.
-# domains: used for Tavily include_domains and for the allow-list filter.
-#
-# TODO: verify each feed URL before relying on it (python -c "import feedparser; print(feedparser.parse(URL).entries[:1])").
+# feeds:   RSS/Atom URLs (checked 2026-10-29). Empty list -> covered by domain-restricted Tavily search.
+# domains: used for Tavily include_domains and for the allow-list filter (subdomains match).
 
 sources:
   - name: OpenAI
     tier: 1
     domains: [openai.com]
-    feeds: []
+    feeds: [https://openai.com/news/rss.xml]
 
   - name: Anthropic
     tier: 1
     domains: [anthropic.com]
-    feeds: []
+    feeds: []                       # no public feed
 
   - name: Google Research
     tier: 1
     domains: [research.google, blog.google, deepmind.google]
-    feeds: []
+    feeds:
+      - https://research.google/blog/rss/
+      - https://blog.google/technology/ai/rss/
+      - https://deepmind.google/blog/rss.xml
 
   - name: Microsoft Research
     tier: 1
     domains: [microsoft.com]
-    feeds: []
+    feeds: [https://www.microsoft.com/en-us/research/feed/]
 
   - name: AWS Machine Learning Blog
     tier: 1
     domains: [aws.amazon.com]
-    feeds: []
+    feeds: [https://aws.amazon.com/blogs/machine-learning/feed/]
 
   - name: IBM Research
     tier: 1
     domains: [research.ibm.com]
-    feeds: []
+    feeds: [https://research.ibm.com/rss]
 
   - name: LangChain / LangGraph
     tier: 1
-    domains: [blog.langchain.com, langchain.com]
-    feeds: []
+    domains: [langchain.com]
+    feeds: [https://www.langchain.com/blog/rss.xml]
 
   - name: IEEE Spectrum
     tier: 1
     domains: [spectrum.ieee.org]
-    feeds: []
+    feeds: [https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss]
 
   - name: ACM (CACM / Queue)
     tier: 1
     domains: [cacm.acm.org, queue.acm.org]
-    feeds: []
+    feeds: []                       # feeds return 403 to scripts
 
   - name: Hugging Face
     tier: 2
     domains: [huggingface.co]
-    feeds: []
+    feeds: [https://huggingface.co/blog/feed.xml]
 
   - name: NVIDIA Technical Blog
     tier: 2
     domains: [developer.nvidia.com]
-    feeds: []
+    feeds: [https://developer.nvidia.com/blog/feed/]
 
   - name: Meta AI
     tier: 2
     domains: [ai.meta.com]
-    feeds: []
+    feeds: []                       # no public feed
 
 # arXiv is queried through its API (tools.search_arxiv), not as a feed.
 arxiv:

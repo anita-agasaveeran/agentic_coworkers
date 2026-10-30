@@ -31,8 +31,8 @@ Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints l
 | State and structured-output schemas | done |
 | SQLite schema | done |
 | Prompts | drafted |
-| Tools (`tools.py`) | stubs |
+| Tools (`tools.py`) | done; feeds, arXiv, page loading tested live; `search_web` tested with a mocked Tavily client only |
 | Nodes (`nodes.py`, except routing and feedback) | stubs |
 | Memory read/write helpers | stubs |
 | Evaluation (`evaluate.py`) | stubs |
-| Source feed URLs (`sources.yaml`) | to verify |
+| Source feed URLs (`sources.yaml`) | checked 2026-10-29 (10 feeds) |

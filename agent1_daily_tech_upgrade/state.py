@@ -11,7 +11,7 @@ class Article(TypedDict, total=False):
     title: str
     source: str              # display name from sources.yaml, e.g. "AWS Machine Learning Blog"
     tier: int                # authority tier from sources.yaml
-    published: date
+    published: date | None   # None only for search results without a date until extract_full_text
     snippet: str             # from the feed / search result
     full_text: str | None
     word_count: int | None
