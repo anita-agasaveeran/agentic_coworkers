@@ -1,105 +1,15 @@
 """End-to-end graph runs with a fake LLM, fake embeddings, and fake network tools."""
 
 import json
-import re
 from datetime import date
 
 import pytest
-from langchain_core.embeddings import DeterministicFakeEmbedding
 
 import agent
 import config
 import memory
 import nodes
-from state import CandidateScore, CandidateScores, QueryPlan, SummaryOutput
-
-RUN_DATE = date(2026, 10, 29)
-PUBLISHED = date(2026, 10, 28)
-
-# title -> (relevance, depth, novelty, topics)
-CATALOG = {
-    "RAG evaluation at scale": ("Google Research", 1, (5, 5, 5, ["rag evaluation"])),
-    "Multi-agent orchestration with LangGraph": ("AWS Machine Learning Blog", 1, (5, 4, 5, ["multi-agent systems"])),
-    "Another RAG benchmark": ("Google Research", 1, (5, 5, 4, ["rag benchmarks"])),
-    "LLM-based recommender systems": ("Hugging Face", 2, (5, 4, 4, ["recommender systems"])),
-    "Funding announcement": ("OpenAI", 1, (1, 1, 2, ["company news"])),
-    "Attention kernels on GPUs": ("NVIDIA Technical Blog", 2, (4, 5, 4, ["gpu kernels"])),
-}
-
-
-def slug(title: str) -> str:
-    return re.sub(r"\W+", "-", title.lower()).strip("-")
-
-
-def make_articles(day_offset: int = 0) -> list[dict]:
-    return [{
-        "url": f"https://example.org/{slug(title)}{'-v2' if day_offset else ''}",
-        "title": title + (" (follow-up)" if day_offset else ""),
-        "source": source, "tier": tier,
-        "published": date.fromordinal(PUBLISHED.toordinal() + day_offset),
-        "snippet": f"About {title}.",
-    } for title, (source, tier, _) in CATALOG.items()]
-
-
-class FakeLLM:
-    """Stands in for structured(schema): answers each prompt type deterministically."""
-
-    def __init__(self, scores_override=None):
-        self.calls = {"QueryPlan": 0, "CandidateScores": 0, "SummaryOutput": 0}
-        self.scores_override = scores_override
-
-    def __call__(self, schema):
-        llm = self
-
-        class Runnable:
-            def invoke(self, prompt):
-                return llm.answer(schema, prompt)
-
-            def batch(self, prompts):
-                return [llm.answer(schema, p) for p in prompts]
-
-        return Runnable()
-
-    def answer(self, schema, prompt):
-        self.calls[schema.__name__] += 1
-        if schema is QueryPlan:
-            return QueryPlan(queries=["rag evaluation", "multi-agent systems", "recommender systems"],
-                             arxiv_queries=["agentic retrieval"])
-        if schema is CandidateScores:
-            scores = []
-            for cid, title in re.findall(r"^\[(\d+)\] (.+?) \|", prompt, flags=re.M):
-                base = title.removesuffix(" (follow-up)")
-                rel, depth, nov, topics = self.scores_override or CATALOG[base][2]
-                scores.append(CandidateScore(id=int(cid), relevance=rel, depth=depth, novelty=nov, topics=topics))
-            return CandidateScores(scores=scores)
-        title = re.search(r"^Article: (.+?) \(", prompt, flags=re.M).group(1)
-        return SummaryOutput(
-            summary=f"Summary of {title}.", key_takeaways=["one", "two", "three"],
-            why_it_matters="Fits your goals.", think_about="What next?", reading_scope="whole article")
-
-
-@pytest.fixture
-def env(tmp_path, monkeypatch):
-    for name, path in {"DATA_DIR": tmp_path / "data", "HISTORY_DB": tmp_path / "data" / "history.db",
-                       "CHECKPOINT_DB": tmp_path / "data" / "checkpoints.db",
-                       "VECTOR_STORE_PATH": tmp_path / "data" / "vectors.json",
-                       "BRIEFS_DIR": tmp_path / "briefs"}.items():
-        monkeypatch.setattr(config, name, path)
-    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
-
-    fake = FakeLLM()
-    monkeypatch.setattr(nodes, "structured", fake)
-    embeddings = DeterministicFakeEmbedding(size=32)
-    monkeypatch.setattr(nodes, "embeddings_or_none", lambda: embeddings)
-
-    feed = {"articles": make_articles()}
-    monkeypatch.setattr(nodes.tools, "fetch_feeds", lambda sources, since: list(feed["articles"]))
-    monkeypatch.setattr(nodes.tools, "search_arxiv", lambda *a, **k: [])
-    broken, no_text = set(), set()
-    monkeypatch.setattr(nodes.tools, "url_resolves", lambda url: url not in broken)
-    monkeypatch.setattr(nodes.tools, "load_page", lambda url: (
-        None if any(s in url for s in no_text) else {"text": "word " * 920, "word_count": 920, "published": None}))
-    return {"llm": fake, "feed": feed, "broken": broken, "no_text": no_text, "tmp": tmp_path}
+from fakes import PUBLISHED, RUN_DATE, make_articles
 
 
 def test_full_run_writes_brief_and_memory(env):

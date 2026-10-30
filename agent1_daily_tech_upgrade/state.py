@@ -69,6 +69,11 @@ class CandidateScores(BaseModel):
     scores: list[CandidateScore]
 
 
+class FaithfulnessJudgment(BaseModel):
+    score: int = Field(description="1-5: 5 = every claim is supported by the source text, 1 = mostly unsupported")
+    unsupported_claims: list[str] = Field(description="Claims in the summary or takeaways that the source text doesn't support")
+
+
 class SummaryOutput(BaseModel):
     summary: str = Field(description="4-6 sentence technical summary")
     key_takeaways: list[str] = Field(description="3-5 concrete takeaways")

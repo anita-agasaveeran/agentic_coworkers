@@ -10,7 +10,8 @@ From this folder, after the repo-level setup in the [root README](../README.md):
 ../.venv/bin/python agent.py                 # today's brief, then asks for ratings
 ../.venv/bin/python agent.py --no-feedback   # skip the rating step
 ../.venv/bin/python agent.py --date 2026-10-29
-../.venv/bin/python evaluate.py --days 7
+../.venv/bin/python evaluate.py              # report over all saved runs -> eval_reports/
+../.venv/bin/python evaluate.py --days 7 --no-llm --no-network   # last 7 runs, offline checks only
 ../.venv/bin/python -m pytest
 ```
 
@@ -33,7 +34,7 @@ Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints l
 | Memory (`memory.py`) | done |
 | Nodes (`nodes.py`) | done; full graph tested with a fake LLM and run live end to end (≈2 min per run) |
 | Prompts | revised after live runs |
-| Evaluation (`evaluate.py`) | stubs |
+| Evaluation (`evaluate.py`) | done; tested offline and on live runs |
 | Source feed URLs (`sources.yaml`) | checked 2026-10-29 (10 feeds) |
 
 ## API keys

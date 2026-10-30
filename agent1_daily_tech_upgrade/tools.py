@@ -53,7 +53,7 @@ def _parse_iso_date(value: str | None) -> date | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+        return datetime.fromisoformat(value.replace("Z", "+00:00").replace("/", "-")).date()
     except ValueError:
         pass
     try:
@@ -124,6 +124,7 @@ def page_published_date(html: str) -> date | None:
         {"name": "article:published_time"},
         {"name": "date"},
         {"name": "citation_publication_date"},
+        {"name": "citation_date"},              # arXiv, e.g. "2026/10/28"
         {"itemprop": "datePublished"},
     ):
         tag = soup.find("meta", attrs=attrs)

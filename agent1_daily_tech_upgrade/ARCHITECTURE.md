@@ -198,16 +198,19 @@ Think about: <one question>
 
 ---
 
-## 10. Evaluation hooks (built into the architecture)
+## 10. Evaluation (`evaluate.py`)
 
-| Metric | How it is measured | Where the data comes from |
+`evaluate.py` reads every saved run (the final graph state per run date from the LangGraph checkpointer) plus `history.db`, and writes a Markdown report to `eval_reports/eval_YYYY-MM-DD.md`. `--no-llm` skips the judge; `--no-network` skips live page checks.
+
+| Area | Metrics | How it is measured |
 |---|---|---|
-| Reference accuracy | % of URLs that resolve and whose title/date match the page | link check in `extract_full_text` |
-| Summary faithfulness | LLM-as-judge: each takeaway supported by the source text (score 1–5) | offline eval script over saved state |
-| Relevance | average user rating; precision@3 (ratings ≥ 4) | `feedback` table |
-| Novelty / diversity | % of articles not similar to history; distinct sources and topics per week | vector store, `articles_seen` |
-| Time-budget fit | % of briefs with estimated time in 15–20 min | `brief` metadata |
-| Learning progress | topic coverage over time vs. profile interests; trend in ratings; optional 3-question self-quiz per brief | `topic_progress` |
+| Pipeline health | candidates per run, full briefs (3 articles), runs needing a retry, full-text rate, mean selected score | saved run state |
+| Reference accuracy | briefs whose links and References exactly match the selected articles; links resolving; titles and dates matching the live page (±2 days) | offline check on the brief text, then a fetch of each article page; pages that block scripts are counted as unverifiable |
+| Summary faithfulness | mean 1–5 support score; share scored 4–5; list of unsupported claims | LLM-as-judge (`JUDGE_FAITHFULNESS`) compares each summary and its takeaways to the text the summarizer saw. The judge is the same model family as the summarizer, so the scores can run high; the claim list is the more useful output |
+| Relevance | articles rated, mean rating, precision@3 (share rated ≥ 4) | `feedback` table (your ratings) |
+| Novelty and diversity | repeated articles across briefs, distinct sources and topics, per-brief source diversity, profile interests covered | saved runs |
+| Time budget | mean brief minutes, share within 15–20 min | `read_minutes` per summary + 5 min for the brief |
+| Learning progress | articles per interest, mean rating by day, liked/disliked topics, interests the agent will steer toward next | saved runs, `feedback`, `topic_progress` |
 
 ---
 
@@ -229,7 +232,8 @@ agent1_daily_tech_upgrade/
 ├── prompts.py             # planning, scoring, summarizing prompts
 ├── evaluate.py            # offline metrics over saved runs
 ├── demo.ipynb             # working prototype walkthrough
-├── tests/                 # pytest
+├── tests/                 # pytest (fakes.py + conftest.py: fake LLM, embeddings, network)
 ├── briefs/                # generated daily briefs (sample results)
+├── eval_reports/          # evaluate.py output
 └── data/                  # history.db, checkpoints.db, summary_vectors.json (gitignored)
 ```

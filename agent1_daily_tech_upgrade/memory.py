@@ -54,9 +54,15 @@ def _keywords(text: str) -> set[str]:
     return {w[:-1] if w.endswith("s") and not w.endswith("ss") and len(w) > 3 else w for w in words}
 
 
+def _acronym(text: str) -> str | None:
+    """Initials of a 2-4 word phrase ("retrieval-augmented generation" -> "rag")."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    return "".join(w[0] for w in words) if 2 <= len(words) <= 4 else None
+
+
 def interest_matches_topic(interest: str, topic: str) -> bool:
-    """Loose match between a profile interest and an LLM topic label (shared keyword)."""
-    return bool(_keywords(interest) & _keywords(topic))
+    """Loose match between a profile interest and an LLM topic label (shared keyword or acronym)."""
+    return bool((_keywords(interest) | {_acronym(interest)}) & _keywords(topic))
 
 
 # --- Reads -------------------------------------------------------------------

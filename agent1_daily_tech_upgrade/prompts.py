@@ -47,6 +47,22 @@ For each candidate, using its id, give integer scores 1-5:
 Also give 1-3 short topic labels. Score only from the information given; do not guess at content
 that isn't in the snippet."""
 
+JUDGE_FAITHFULNESS = """You check a summary against its source text for factual support.
+
+Source text ({text_source}):
+{text}
+
+Summary:
+{summary}
+
+Key takeaways:
+{takeaways}
+
+List every factual claim in the summary or takeaways that the source text does not support
+(numbers, names, results, causal statements). Interpretation and advice addressed to the reader
+are fine. Then score 1-5: 5 = every claim supported, 4 = one minor unsupported detail,
+3 = several unsupported details, 2 = a central claim unsupported, 1 = mostly unsupported."""
+
 SUMMARIZE_ARTICLE = """Summarize this article for the reader's {minutes}-minute reading slot.
 
 Reader profile:
