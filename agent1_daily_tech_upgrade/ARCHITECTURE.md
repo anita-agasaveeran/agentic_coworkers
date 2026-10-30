@@ -134,7 +134,7 @@ class BriefState(TypedDict):
 |---|---|---|---|
 | `profile.json` | long-term, user-edited | interests (weighted), current skill level per area, career goals (e.g. "ML engineer internship, summer 2027"), preferred depth | query planning, relevance scoring, "why it matters" |
 | `history.db` (SQLite) | long-term, agent-written | `articles_seen(url, title, source, published, topics, score, shown_on)`<br>`feedback(url, rating, tags, date)`<br>`topic_progress(topic, exposures, last_seen, avg_rating)` | dedupe, learning-progress signal, evaluation metrics |
-| Vector store (Chroma or `InMemoryVectorStore`, persisted) | long-term semantic | embeddings of past article summaries | novelty scoring, near-duplicate filtering |
+| Vector store (`InMemoryVectorStore`, persisted to `data/summary_vectors.json`) | long-term semantic | embeddings of past article summaries | novelty scoring, near-duplicate filtering |
 | LangGraph checkpointer (`SqliteSaver` / `InMemorySaver`) | short-term, per run | full `BriefState` per `thread_id = run_date` | resuming after `interrupt()`, debugging, re-running a day |
 
 **How personalization uses memory:**
@@ -206,19 +206,23 @@ Think about: <one question>
 
 ## 11. Tech stack and file layout
 
-**Stack:** Python 3.11, LangGraph, LangChain (`init_chat_model`, so the LLM provider can be swapped between OpenAI and Anthropic), Tavily, feedparser, requests + BeautifulSoup, SQLite, Chroma (or `InMemoryVectorStore`), LangSmith. A daily run can be scheduled with cron.
+**Stack:** Python 3.12, LangGraph, LangChain (`init_chat_model` / `init_embeddings`, so the provider is set by a `provider:model` string in `.env`; default chat model `anthropic:claude-opus-5-5`, default embeddings `openai:text-embedding-3-small`), Tavily, feedparser, requests + BeautifulSoup, SQLite, `InMemoryVectorStore` persisted to JSON, LangSmith. A daily run can be scheduled with cron.
 
 ```
 agent1_daily_tech_upgrade/
 ├── ARCHITECTURE.md        # this file
 ├── profile.json           # my interests, level, goals
 ├── sources.yaml           # allow-listed sources, tiers, feed URLs
-├── agent.py               # StateGraph definition (nodes + edges)
-├── tools.py               # fetch_feeds, search_web, search_arxiv, load_page
-├── memory.py              # SQLite + vector store helpers
+├── config.py              # paths, weights/thresholds, model factories
+├── state.py               # BriefState, Article, structured-output schemas
+├── nodes.py               # one function per graph node + routing
+├── agent.py               # StateGraph wiring + CLI (feedback interrupt loop)
+├── tools.py               # fetch_feeds, search_web, search_arxiv, load_page, url_resolves
+├── memory.py              # SQLite schema/helpers + vector store helpers
 ├── prompts.py             # planning, scoring, summarizing prompts
 ├── evaluate.py            # offline metrics over saved runs
 ├── demo.ipynb             # working prototype walkthrough
+├── tests/                 # pytest
 ├── briefs/                # generated daily briefs (sample results)
-└── data/history.db
+└── data/                  # history.db, checkpoints.db, summary_vectors.json (gitignored)
 ```

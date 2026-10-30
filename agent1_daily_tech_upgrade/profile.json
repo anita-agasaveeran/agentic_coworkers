@@ -1,0 +1,25 @@
+{
+  "_note": "TODO: replace the example values below with your real interests, levels, and goals.",
+  "name": "Anita",
+  "role": "MS Software Engineering student, SJSU",
+  "career_goals": [
+    "ML / AI engineer internship for summer 2027",
+    "Build production LLM agent systems"
+  ],
+  "interests": {
+    "llm agents and multi-agent systems": 1.0,
+    "retrieval-augmented generation": 0.8,
+    "recommender systems": 0.7,
+    "cloud ML infrastructure": 0.5
+  },
+  "skill_levels": {
+    "python": "advanced",
+    "deep learning": "intermediate",
+    "langgraph": "beginner"
+  },
+  "preferred_depth": "technical deep dives over news announcements",
+  "avoid": [
+    "product marketing posts",
+    "funding news"
+  ]
+}

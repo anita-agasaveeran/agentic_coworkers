@@ -1,0 +1,74 @@
+# Allow-listed sources for DailyTechUpgradeAgent.
+#
+# tier:    1 = primary labs/vendors and research bodies, 2 = reputable engineering publications
+# feeds:   RSS/Atom URLs. Empty list -> the source is covered by domain-restricted Tavily search.
+# domains: used for Tavily include_domains and for the allow-list filter.
+#
+# TODO: verify each feed URL before relying on it (python -c "import feedparser; print(feedparser.parse(URL).entries[:1])").
+
+sources:
+  - name: OpenAI
+    tier: 1
+    domains: [openai.com]
+    feeds: []
+
+  - name: Anthropic
+    tier: 1
+    domains: [anthropic.com]
+    feeds: []
+
+  - name: Google Research
+    tier: 1
+    domains: [research.google, blog.google, deepmind.google]
+    feeds: []
+
+  - name: Microsoft Research
+    tier: 1
+    domains: [microsoft.com]
+    feeds: []
+
+  - name: AWS Machine Learning Blog
+    tier: 1
+    domains: [aws.amazon.com]
+    feeds: []
+
+  - name: IBM Research
+    tier: 1
+    domains: [research.ibm.com]
+    feeds: []
+
+  - name: LangChain / LangGraph
+    tier: 1
+    domains: [blog.langchain.com, langchain.com]
+    feeds: []
+
+  - name: IEEE Spectrum
+    tier: 1
+    domains: [spectrum.ieee.org]
+    feeds: []
+
+  - name: ACM (CACM / Queue)
+    tier: 1
+    domains: [cacm.acm.org, queue.acm.org]
+    feeds: []
+
+  - name: Hugging Face
+    tier: 2
+    domains: [huggingface.co]
+    feeds: []
+
+  - name: NVIDIA Technical Blog
+    tier: 2
+    domains: [developer.nvidia.com]
+    feeds: []
+
+  - name: Meta AI
+    tier: 2
+    domains: [ai.meta.com]
+    feeds: []
+
+# arXiv is queried through its API (tools.search_arxiv), not as a feed.
+arxiv:
+  tier: 1
+  categories: [cs.AI, cs.CL, cs.LG, cs.IR]
+  max_results_per_query: 10
