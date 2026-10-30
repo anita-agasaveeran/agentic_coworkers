@@ -94,12 +94,12 @@ class BriefState(TypedDict):
 | Node | Type | What it does | Reads / writes |
 |---|---|---|---|
 | `load_profile` | code | Loads static interests and goals from `profile.json`; derives *learning progress* from SQLite (topics covered recently, topics rated "want more", under-covered interests). | M1, M2 → `profile` |
-| `plan_queries` | LLM | Turns the profile into 5–8 search queries, weighting under-covered interests (e.g. "LangGraph multi-agent memory", "RAG evaluation"). | `profile` → `queries` |
+| `plan_queries` | LLM | Turns the profile into 5–8 web search queries spread across interests (weighting under-covered ones), plus 4 short 2–3 keyword arXiv queries (e.g. "agentic retrieval"). | `profile` → `queries`, `arxiv_queries` |
 | `fetch_candidates` | tools | Pulls the last 72 h of posts from source feeds and arXiv; runs domain-restricted Tavily searches for each query. Captures title, URL, date, and source **from the tool response**. | → `candidates` |
 | `dedupe_and_filter` | code | Normalizes URLs; drops items already in `history.db`; drops near-duplicates (embedding similarity > 0.9 to past summaries); drops non-allow-listed domains, items with no date, and items older than the window. | M2, M3 |
 | `score_and_rank` | LLM + code | LLM scores each candidate 1–5 on relevance, depth, and novelty using structured output; code adds authority (source tier) and recency. Applies weighted sum plus a diversity rule (≤1 article per source, distinct topics). | → `selected` |
 | `broaden_queries` | LLM | Runs only if fewer than 3 candidates pass the threshold. Widens the time window (72 h → 7 days) and/or rewrites queries. Max 2 retries; then falls back to the best available. | `retries += 1` |
-| `extract_full_text` | tool | Fetches each selected page and extracts the main text (bs4). On failure, falls back to the feed/search snippet and flags the summary as "snippet-based". | → `full_text`, `word_count` |
+| `extract_full_text` | tool | Fetches each selected page and extracts the main text (bs4, or Tavily extract for sites that block scripts). An article with no retrievable text is replaced by the next full-text candidate; it is used, flagged "snippet-based", only when no such candidate is left. | → `full_text`, `word_count` |
 | `summarize_and_personalize` | LLM | For each article: a 4–6 sentence technical summary, 3–5 key takeaways, "why this matters for me" (tied to specific profile goals), one follow-up question to think about, and a suggested reading scope that fits the time budget. | → `summaries` |
 | `compose_brief` | code (template) | Renders the Markdown brief: header, total time, 3 article cards, references section. Title, date, source, and URL are inserted from `Article` fields, not LLM output. | → `brief_markdown` |
 | `collect_feedback` | human-in-the-loop | LangGraph `interrupt()`: asks for a 1–5 rating per article and optional "more/less like this" tags. Skippable (defaults to no feedback). | → `feedback` |
@@ -114,9 +114,9 @@ class BriefState(TypedDict):
 | Tool | Purpose |
 |---|---|
 | `fetch_feeds(sources, since)` | Reads RSS/Atom feeds with `feedparser`; returns `Article` records with tracking params stripped. |
-| `search_web(query, sources, since)` | Tavily search restricted to the sources' domains and results since `since`, for sources without usable feeds. `published` may be `None`; filled from the page later. |
-| `search_arxiv(query, categories, since)` | arXiv API for recent papers, newest first; respects the 3-second rate limit and retries once on HTTP 429. |
-| `load_page(url)` | `requests` + BeautifulSoup main-content extraction (largest `<article>`, else `<main>`); also reads the publication date from meta tags. Returns `None` for blocked, non-HTML, or very short pages. |
+| `search_web(query, sources, days)` | Tavily news search over the last `days` days, restricted to the sources' domains; drops search/listing pages. (General search with a start date returned nothing in testing.) |
+| `search_arxiv(query, categories, since)` | arXiv API abstract search on up to 4 keywords (longer AND-queries timed out), newest first; respects the 3-second rate limit and retries once on HTTP 429. |
+| `load_page(url)` | `requests` + BeautifulSoup main-content extraction (largest `<article>`, else `<main>`), falling back to Tavily extract when a site blocks scripts (e.g. openai.com); also reads the publication date from meta tags. Returns `None` if neither yields enough text. |
 | `url_resolves(url)` | Link check. 401/403/429 count as resolving (the page exists but blocks scripts). |
 
 **Source allow-list with authority tiers** (stored in `sources.yaml`; feeds checked 2026-10-29):
@@ -157,7 +157,7 @@ class BriefState(TypedDict):
 total = 0.35·relevance + 0.20·depth + 0.20·novelty + 0.15·authority + 0.10·recency
 ```
 
-Selection = top 3 by `total`, subject to: at most one article per source, three distinct primary topics, and `total ≥ 0.6` (otherwise → `broaden_queries`).
+Selection = top 3 by `total`, subject to: at most one article per source, three distinct primary topics, and `total ≥ 0.6` (otherwise → `broaden_queries`). To spread the brief across profile interests, each pick goes to an article for a not-yet-covered interest when it scores within 0.15 (`INTEREST_SPREAD_MARGIN`) of the best remaining article.
 
 **15–20 minute budget:** reading time = `word_count / 230 wpm`. The brief itself takes about 5 minutes; the remaining ~12 minutes are split across the 3 articles. For long articles or papers, `summarize_and_personalize` names the specific sections to read (e.g. "Read §3 Method and §5 Results") instead of the whole piece. The brief header shows the total estimated time.
 
@@ -174,6 +174,7 @@ Source: <Source> · Published: <date> · <URL> · ~5 min
 Summary: ...
 Key takeaways: • ... • ... • ...
 Why this matters for you: ...
+What to read: <sections that fit the time slot>
 Think about: <one question>
 
 ## 2. ...
@@ -188,10 +189,11 @@ Think about: <one question>
 
 ## 9. Reliability and guardrails
 
-- **No invented references:** metadata comes only from tool results; `compose_brief` checks that every URL in the brief appears in `selected`.
+- **No invented references:** metadata comes only from tool results; `compose_brief` checks that every summary belongs to a `selected` article. The scorer refers to candidates by list number, not URL, so the LLM never writes a URL.
+- **Structured outputs:** LLM nodes use `with_structured_output(..., method="json_schema")` (native structured outputs), since Claude Opus 5.5 rejects forced tool use. Score ranges and list lengths are enforced in code.
 - **Link check:** an HTTP HEAD/GET on each selected URL before summarizing; broken links (404/410, 5xx, no connection) are swapped for the next-ranked candidate. Pages that block scripts (403) are kept and summarized from the feed snippet.
 - **Grounded summaries:** the summarization prompt includes only the extracted text; if extraction failed, the card is labeled "summary based on abstract/snippet".
-- **Fallbacks:** feed failure → Tavily only; Tavily failure → feeds only; < 3 results after retries → publish fewer articles with a note instead of padding.
+- **Fallbacks:** feed failure → Tavily only; Tavily failure or no key → feeds + arXiv only; no embeddings key → near-duplicate check skipped; < 3 results after retries → publish fewer articles with a note instead of padding.
 - **Tracing:** LangSmith tracing enabled for debugging and evaluation.
 
 ---

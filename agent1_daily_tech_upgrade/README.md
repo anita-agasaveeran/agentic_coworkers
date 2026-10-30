@@ -29,10 +29,17 @@ Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints l
 |---|---|
 | Graph wiring, routing, feedback interrupt, CLI | done |
 | State and structured-output schemas | done |
-| SQLite schema | done |
-| Prompts | drafted |
-| Tools (`tools.py`) | done; feeds, arXiv, page loading tested live; `search_web` tested with a mocked Tavily client only |
-| Nodes (`nodes.py`, except routing and feedback) | stubs |
-| Memory read/write helpers | stubs |
+| Tools (`tools.py`) | done; all tested live |
+| Memory (`memory.py`) | done |
+| Nodes (`nodes.py`) | done; full graph tested with a fake LLM and run live end to end (≈2 min per run) |
+| Prompts | revised after live runs |
 | Evaluation (`evaluate.py`) | stubs |
 | Source feed URLs (`sources.yaml`) | checked 2026-10-29 (10 feeds) |
+
+## API keys
+
+| Key | Needed for | Without it |
+|---|---|---|
+| `ANTHROPIC_API_KEY` (or another `CHAT_MODEL` provider) | query planning, scoring, summaries | the agent can't run |
+| `OPENAI_API_KEY` | embeddings for near-duplicate checks | near-duplicate check is skipped |
+| `TAVILY_API_KEY` | Anthropic, Meta AI, ACM (no usable feeds) and query-targeted search | only feeds and arXiv are used |

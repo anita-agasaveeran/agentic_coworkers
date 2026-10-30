@@ -6,6 +6,7 @@ Every function returns metadata taken from the source response, never from an LL
 """
 
 import logging
+import os
 import re
 import time
 from calendar import timegm
@@ -29,6 +30,8 @@ BOT_BLOCK_STATUSES = {401, 403, 429}
 ARXIV_API = "https://export.arxiv.org/api/query"
 ARXIV_RETRY_SECONDS = 15
 ARXIV_DELAY_SECONDS = 3          # arXiv API terms ask for at most one request every 3 seconds
+ARXIV_MAX_TERMS = 4
+LISTING_PARAMS = {"q", "query", "search", "s"}
 ARXIV_STOPWORDS = {"and", "for", "the", "with", "from", "into", "using", "how", "what", "new"}
 _last_arxiv_call = 0.0
 
@@ -131,9 +134,10 @@ def page_published_date(html: str) -> date | None:
 
 
 def arxiv_search_query(query: str, categories: list[str]) -> str:
+    """Abstract search for the first ARXIV_MAX_TERMS keywords (longer AND-queries time out)."""
     words = [w for w in re.findall(r"[A-Za-z0-9-]+", query)
-             if len(w) > 2 and w.lower() not in ARXIV_STOPWORDS]
-    terms = " AND ".join(f"all:{w}" for w in words)
+             if len(w) > 2 and w.lower() not in ARXIV_STOPWORDS][:ARXIV_MAX_TERMS]
+    terms = " AND ".join(f"abs:{w}" for w in words)
     cats = " OR ".join(f"cat:{c}" for c in categories)
     return f"({cats}) AND ({terms})" if terms else f"({cats})"
 
@@ -156,8 +160,13 @@ def fetch_feeds(sources: list[dict], since: date) -> list[Article]:
     return articles
 
 
-def search_web(query: str, sources: list[dict], since: date, max_results: int = 8) -> list[Article]:
-    """Recent web search via Tavily, restricted to the domains of the given sources.
+def is_listing_url(url: str) -> bool:
+    """Search or listing pages (e.g. huggingface.co/papers?q=...) rather than articles."""
+    return any(k.lower() in LISTING_PARAMS for k, _ in parse_qsl(urlparse(url).query))
+
+
+def search_web(query: str, sources: list[dict], days: int, max_results: int = 8) -> list[Article]:
+    """Recent web search via Tavily (news mode, last `days` days), restricted to the sources' domains.
 
     `published` is None when Tavily doesn't report a date; extract_full_text fills it
     from the page's meta tags.
@@ -167,15 +176,15 @@ def search_web(query: str, sources: list[dict], since: date, max_results: int = 
     domains = [d for s in sources for d in s["domains"]]
     response = TavilyClient().search(
         query,
-        topic="general",
-        start_date=since.isoformat(),
+        topic="news",                 # general + start_date returned nothing in testing
+        days=days,
         include_domains=domains,
         max_results=max_results,
     )
     articles = []
     for result in response.get("results", []):
         source = source_for_url(result["url"], sources)
-        if source is None:
+        if source is None or is_listing_url(result["url"]):
             continue
         articles.append(Article(
             url=clean_url(result["url"]),
@@ -205,7 +214,7 @@ def search_arxiv(query: str, categories: list[str], since: date, max_results: in
         if wait > 0:
             time.sleep(wait)
         try:
-            response = requests.get(ARXIV_API, params=params, headers=HEADERS, timeout=30)
+            response = requests.get(ARXIV_API, params=params, headers=HEADERS, timeout=45)
             _last_arxiv_call = time.monotonic()
             if response.status_code == 429 and attempt == 0:
                 time.sleep(ARXIV_RETRY_SECONDS)
@@ -220,24 +229,49 @@ def search_arxiv(query: str, categories: list[str], since: date, max_results: in
     return entries_to_articles(feedparser.parse(response.content).entries, source, since)
 
 
+def markdown_to_text(markdown: str) -> str:
+    """Strip image and link markup from Tavily's markdown, keeping link text."""
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", markdown)
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    lines = (" ".join(line.split()) for line in text.splitlines())
+    return "\n".join(line for line in lines if line)
+
+
+def extract_with_tavily(url: str) -> str | None:
+    """Page text via Tavily extract, for sites that block direct requests (e.g. openai.com)."""
+    if not os.getenv("TAVILY_API_KEY"):
+        return None
+    from tavily import TavilyClient
+
+    try:
+        results = TavilyClient().extract([url]).get("results", [])
+    except Exception as exc:
+        log.warning("tavily extract failed: %s (%s)", url, exc)
+        return None
+    return markdown_to_text(results[0].get("raw_content", "")) if results else None
+
+
 def load_page(url: str, timeout: float = 20) -> dict | None:
     """Fetch a page and return {"text", "word_count", "published"}, or None if it can't be read.
 
-    `published` is the date from the page's meta tags (None if absent).
+    Falls back to Tavily extract when the site blocks the request or yields too little text.
+    `published` is the date from the page's meta tags (None if absent or from the fallback).
     """
+    text, published = None, None
     try:
         response = requests.get(url, headers=HEADERS, timeout=timeout)
         response.raise_for_status()
+        if "html" in response.headers.get("Content-Type", ""):
+            text = extract_main_text(response.text)
+            published = page_published_date(response.text)
     except requests.RequestException as exc:
-        log.warning("page failed: %s (%s)", url, exc)
+        log.info("direct fetch failed, trying fallback: %s (%s)", url, exc)
+    if not text or len(text.split()) < MIN_PAGE_WORDS:
+        text = extract_with_tavily(url)
+    if not text or len(text.split()) < MIN_PAGE_WORDS:
+        log.warning("no readable text: %s", url)
         return None
-    if "html" not in response.headers.get("Content-Type", ""):
-        return None
-    text = extract_main_text(response.text)
-    word_count = len(text.split())
-    if word_count < MIN_PAGE_WORDS:
-        return None
-    return {"text": text, "word_count": word_count, "published": page_published_date(response.text)}
+    return {"text": text, "word_count": len(text.split()), "published": published}
 
 
 def url_resolves(url: str, timeout: float = 10) -> bool:

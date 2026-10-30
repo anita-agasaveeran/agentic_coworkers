@@ -12,8 +12,8 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
+import config
 import nodes
-from config import CHECKPOINT_DB, DATA_DIR
 from state import BriefState
 
 
@@ -66,14 +66,14 @@ def ask_for_feedback(payload: dict) -> list[dict]:
 
 
 def run(run_date: date, interactive: bool = True) -> dict:
-    DATA_DIR.mkdir(exist_ok=True)
-    with SqliteSaver.from_conn_string(str(CHECKPOINT_DB)) as checkpointer:
+    config.DATA_DIR.mkdir(exist_ok=True)
+    with SqliteSaver.from_conn_string(str(config.CHECKPOINT_DB)) as checkpointer:
         app = build_graph(checkpointer)
-        config = {"configurable": {"thread_id": run_date.isoformat()}}
-        result = app.invoke({"run_date": run_date, "interactive": interactive}, config)
+        thread = {"configurable": {"thread_id": run_date.isoformat()}}
+        result = app.invoke({"run_date": run_date, "interactive": interactive}, thread)
         while result.get("__interrupt__"):
             payload = result["__interrupt__"][0].value
-            result = app.invoke(Command(resume=ask_for_feedback(payload)), config)
+            result = app.invoke(Command(resume=ask_for_feedback(payload)), thread)
         return result
 
 

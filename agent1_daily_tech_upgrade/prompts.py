@@ -8,9 +8,14 @@ Reader profile:
 Learning progress (last 14 days):
 {progress}
 
-Write {min_queries}-{max_queries} search queries that find recent, in-depth technical articles
-for this reader. Favor the interests listed as under-covered, avoid topics the reader marked
-"less like this", and keep each query specific (a technique, system, or problem, not a buzzword)."""
+Write {min_queries}-{max_queries} web search queries that find recent, in-depth technical articles
+for this reader. Spread them across the reader's interests, favoring the ones listed as
+under-covered, avoid topics the reader marked "less like this", and keep each query specific
+(a technique, system, or problem, not a buzzword).
+
+Also write {arxiv_queries} arXiv queries of 2-3 keywords each (e.g. "agentic retrieval",
+"generative recommendation"). arXiv matches every keyword against paper abstracts, so use
+terms that appear in research abstracts, not product or framework names."""
 
 BROADEN_QUERIES = """Today's search found only {num_passing} articles that met the quality bar.
 
@@ -20,8 +25,9 @@ Previous queries:
 Reader profile:
 {profile}
 
-Write {min_queries}-{max_queries} broader or rephrased queries that are likely to surface
-in-depth technical articles on the same interests."""
+Write {min_queries}-{max_queries} broader or rephrased web search queries that are likely to
+surface in-depth technical articles on the same interests, and {arxiv_queries} arXiv queries of
+2-3 keywords each that would appear in research abstracts."""
 
 SCORE_CANDIDATES = """Score each candidate article for this reader.
 
@@ -31,10 +37,10 @@ Reader profile:
 Topics the reader has read about recently:
 {recent_topics}
 
-Candidates (title, source, snippet):
+Candidates ([id] title | source | snippet):
 {candidates}
 
-For each candidate give integer scores 1-5:
+For each candidate, using its id, give integer scores 1-5:
 - relevance: fit with the reader's interests and career goals
 - depth: 1 = announcement or marketing, 5 = detailed technical content (methods, architecture, results)
 - novelty: how new this is for the reader, given the recent topics

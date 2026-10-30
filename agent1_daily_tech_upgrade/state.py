@@ -35,6 +35,7 @@ class BriefState(TypedDict, total=False):
     run_date: date
     profile: dict
     queries: list[str]
+    arxiv_queries: list[str]
     lookback_days: int
     candidates: list[Article]
     filtered: list[Article]
@@ -48,17 +49,20 @@ class BriefState(TypedDict, total=False):
 
 
 # --- Structured LLM outputs --------------------------------------------------
+# Ranges and list lengths are stated in descriptions and enforced in code, not as
+# JSON Schema constraints, so the schemas work with native structured outputs.
 
 class QueryPlan(BaseModel):
-    queries: list[str] = Field(description="Search queries for today's candidate articles")
+    queries: list[str] = Field(description="Web search queries for today's candidate articles")
+    arxiv_queries: list[str] = Field(description="2-3 keyword queries for arXiv abstracts, e.g. 'agentic retrieval'")
 
 
 class CandidateScore(BaseModel):
-    url: str
-    relevance: int = Field(ge=1, le=5, description="Fit with the reader's interests and goals")
-    depth: int = Field(ge=1, le=5, description="Technical depth; 1 = announcement, 5 = deep technical content")
-    novelty: int = Field(ge=1, le=5, description="New to this reader given their history")
-    topics: list[str] = Field(description="1-3 short topic labels")
+    id: int = Field(description="The candidate's number from the list")
+    relevance: int = Field(description="1-5: fit with the reader's interests and goals")
+    depth: int = Field(description="1-5: 1 = announcement, 5 = deep technical content")
+    novelty: int = Field(description="1-5: how new this is for the reader given their history")
+    topics: list[str] = Field(description="1-3 short lowercase topic labels, most specific first")
 
 
 class CandidateScores(BaseModel):
@@ -67,7 +71,7 @@ class CandidateScores(BaseModel):
 
 class SummaryOutput(BaseModel):
     summary: str = Field(description="4-6 sentence technical summary")
-    key_takeaways: list[str] = Field(min_length=3, max_length=5)
+    key_takeaways: list[str] = Field(description="3-5 concrete takeaways")
     why_it_matters: str = Field(description="How this helps the reader's specific goals")
     think_about: str = Field(description="One question to reflect on after reading")
     reading_scope: str = Field(description="What to read to fit the time budget")

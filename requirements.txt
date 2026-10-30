@@ -11,6 +11,7 @@ requests>=2.32
 beautifulsoup4>=4.12
 pyyaml>=6.0
 python-dotenv>=1.0
+numpy>=2.0                    # InMemoryVectorStore similarity search
 
 # dev / demo
 pytest>=8.0

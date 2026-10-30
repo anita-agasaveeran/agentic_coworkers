@@ -25,6 +25,9 @@ LOOKBACK_DAYS = 3                 # initial window (72 h)
 BROADENED_LOOKBACK_DAYS = 7       # window used after broaden_queries
 MAX_RESULTS_PER_QUERY = 8
 NUM_QUERIES = (5, 8)              # min/max queries from plan_queries
+ARXIV_QUERIES = 4                 # arXiv allows one request per 3 s, so keep this small
+SCORE_BATCH_SIZE = 30             # candidates per scoring call
+MAX_TEXT_CHARS = 120_000          # cap on article text sent for summarizing (logged when hit)
 
 # --- Selection (ARCHITECTURE.md §7) ------------------------------------------
 TOP_K = 3
@@ -39,6 +42,7 @@ SCORE_WEIGHTS = {
     "recency": 0.10,
 }
 TIER_AUTHORITY = {1: 1.0, 2: 0.7}
+INTEREST_SPREAD_MARGIN = 0.15     # max score given up to cover another profile interest
 
 # --- Reading-time budget -----------------------------------------------------
 WORDS_PER_MINUTE = 230

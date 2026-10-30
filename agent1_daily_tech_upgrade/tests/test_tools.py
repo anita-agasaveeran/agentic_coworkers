@@ -120,10 +120,13 @@ def test_parse_iso_date(value, expected):
 
 def test_arxiv_search_query():
     q = tools.arxiv_search_query("RAG evaluation for LLM agents", ["cs.AI", "cs.CL"])
-    assert q == "(cat:cs.AI OR cat:cs.CL) AND (all:RAG AND all:evaluation AND all:LLM AND all:agents)"
+    assert q == "(cat:cs.AI OR cat:cs.CL) AND (abs:RAG AND abs:evaluation AND abs:LLM AND abs:agents)"
+    long_q = tools.arxiv_search_query("hybrid search BM25 dense embeddings reranking", ["cs.IR"])
+    assert long_q == "(cat:cs.IR) AND (abs:hybrid AND abs:search AND abs:BM25 AND abs:dense)"
 
 
 def test_load_page(monkeypatch):
+    monkeypatch.setattr(tools, "extract_with_tavily", lambda url: None)
     html = ARTICLE_HTML.format(body="word " * 200)
     response = types.SimpleNamespace(
         text=html, headers={"Content-Type": "text/html; charset=utf-8"}, raise_for_status=lambda: None)
@@ -133,6 +136,31 @@ def test_load_page(monkeypatch):
 
     response.text = ARTICLE_HTML.format(body="too short")
     assert tools.load_page("https://research.google/blog/x") is None
+
+
+def test_load_page_falls_back_to_tavily_when_blocked(monkeypatch):
+    def blocked(*args, **kwargs):
+        raise tools.requests.HTTPError("403 Client Error: Forbidden")
+
+    monkeypatch.setattr(tools.requests, "get", blocked)
+    monkeypatch.setattr(tools, "extract_with_tavily", lambda url: "text " * 300)
+    page = tools.load_page("https://openai.com/index/x")
+    assert page["word_count"] == 300 and page["published"] is None
+
+
+def test_markdown_to_text():
+    md = "[Skip](https://x/#main) ![logo](https://x/a.png)\n\n## Heading\nSee [the paper](https://arxiv.org/abs/1)."
+    assert tools.markdown_to_text(md) == "Skip\n## Heading\nSee the paper."
+
+
+@pytest.mark.parametrize("url, expected", [
+    ("https://huggingface.co/papers?q=retrieval+budget", True),
+    ("https://example.org/search?query=rag", True),
+    ("https://huggingface.co/papers/2610.10170", False),
+    ("https://research.ibm.com/blog/x?id=3", False),
+])
+def test_is_listing_url(url, expected):
+    assert tools.is_listing_url(url) is expected
 
 
 def test_search_web_maps_results_and_restricts_domains(monkeypatch):
@@ -146,13 +174,14 @@ def test_search_web_maps_results_and_restricts_domains(monkeypatch):
                  "content": "About A", "published_date": "Wed, 28 Oct 2026 12:00:00 GMT"},
                 {"url": "https://research.google/blog/b", "title": "B", "content": "About B"},
                 {"url": "https://elsewhere.com/c", "title": "C", "content": "About C"},
+                {"url": "https://research.google/search?q=rag", "title": "Search", "content": "listing"},
             ]}
 
     monkeypatch.setitem(sys.modules, "tavily", types.SimpleNamespace(TavilyClient=FakeClient))
-    articles = tools.search_web("rag", SOURCES, since=date(2026, 10, 26))
+    articles = tools.search_web("rag", SOURCES, days=3)
 
     assert calls["include_domains"] == ["research.google", "blog.google", "aws.amazon.com"]
-    assert calls["start_date"] == "2026-10-26"
+    assert calls["topic"] == "news" and calls["days"] == 3
     assert [a["source"] for a in articles] == ["AWS Machine Learning Blog", "Google Research"]
     assert articles[0]["published"] == date(2026, 10, 28)
     assert articles[1]["published"] is None
