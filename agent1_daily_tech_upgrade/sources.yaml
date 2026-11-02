@@ -17,7 +17,7 @@ sources:
 
   - name: Google Research
     tier: 1
-    domains: [research.google, blog.google, deepmind.google]
+    domains: [research.google, blog.google, deepmind.google, cloud.google.com]
     feeds:
       - https://research.google/blog/rss/
       - https://blog.google/technology/ai/rss/

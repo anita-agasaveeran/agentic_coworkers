@@ -19,7 +19,8 @@
     "machine learning for physics and astronomy": 0.9,
     "retrieval-augmented generation": 0.8,
     "recommender systems": 0.7,
-    "cloud ML infrastructure": 0.5
+    "agent frameworks and APIs (LangGraph, LangChain, OpenAI)": 0.8,
+    "cloud AI platforms (AWS, Google Cloud, Microsoft Foundry)": 0.6
   },
   "skill_levels": {
     "python": "advanced",
@@ -34,11 +35,17 @@
     "scientific python (numpy, scipy, astropy)": "intermediate",
     "probability and statistics": "intermediate",
     "sql": "intermediate",
-    "cloud platforms (AWS, GCP, Azure)": "beginner",
-    "langgraph": "beginner"
+    "langgraph": "beginner",
+    "langchain": "beginner",
+    "openai api": "beginner",
+    "aws": "beginner",
+    "google cloud": "beginner",
+    "microsoft foundry (azure ai)": "beginner"
   },
   "learning_goals": [
     "Go from LangGraph beginner to building multi-agent systems",
+    "Build agents with LangGraph, LangChain, and the OpenAI APIs",
+    "Deploy agent systems on AWS, Google Cloud, and Microsoft Foundry",
     "Move from undergraduate astrophysics to research-level topics for PhD applications",
     "Keep up with current arXiv papers in astro-ph and physics",
     "Learn how ML methods are used on astronomical survey and simulation data"
