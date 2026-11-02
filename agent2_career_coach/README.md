@@ -39,7 +39,7 @@ Page loading, link checks, and arXiv search reuse Agent 1's `tools.py`. Agent 1'
 | Graph wiring, routing, check-in and question interrupts, CLI, session resume | done |
 | State and structured-output schemas | done |
 | SQLite schema | done |
-| Prompts | drafted |
+| Prompts | revised after live sessions |
 | Agent 1 tool reuse (`load_page`, `url_resolves`, `search_arxiv`) | done |
 | New tools (`search_opportunities`, `search_resources`, `load_posting`, `posting_is_open`, `run_tests`) | done; tested offline and checked live 2026-11-01 |
 | Nodes and scoring (§7) | done; tested with a fake LLM; sample session 2026-11-01 ([report](reports/2026-11-01.md), [transcript](sessions/2026-11-01.md)) |
