@@ -69,7 +69,7 @@ DIFFICULTY_BANDS = ((0.4, 1), (0.7, 2), (1.01, 3))   # readiness below bound -> 
 PLAN_DAYS = 14
 PLAN_GAPS = 4                     # gaps covered by resources and plan tasks
 RESOURCES_PER_GAP = 2
-PLAN_MAX_HOURS = 20               # total hours of new tasks per plan
+PLAN_MAX_HOURS = 20               # total plan hours; new tasks fill what carried-over tasks leave
 ARXIV_RESOURCE_DAYS = 365         # paper age limit for research-skill resources
 RESEARCH_AREAS = ("science",)     # skills.yaml areas whose resources include arXiv papers
 

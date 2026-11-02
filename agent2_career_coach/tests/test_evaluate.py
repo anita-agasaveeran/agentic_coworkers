@@ -56,7 +56,7 @@ def test_offline_metrics(sessions):
     assert extraction["mapped_to_taxonomy"] == "7/8 (88%)" and extraction["top_unmapped_skills"] == ["fortran (1)"]
     assert coaching["probes_improving_on_parent"] == "2/2 (100%)"        # weak 0.25 -> "ok" 0.75, both days
     assert coaching["answers_with_misconceptions_later_answered_well"] == "2/2 (100%)"
-    assert progress["tasks_done"] == "1/4 (25%)" and progress["tasks_done_on_time"] == "1/1 (100%)"
+    assert progress["tasks_done"] == "1/3 (33%)" and progress["tasks_done_on_time"] == "1/1 (100%)"
     assert "ML engineer intern" in progress["readiness_by_target"]
     assert grounding["findings_with_valid_evidence"] == "4/4 (100%)"
     assert grounding["links_from_stored_tool_results"] == f"{grounding['report_links']}/{grounding['report_links']} (100%)"
@@ -122,3 +122,14 @@ def test_spearman(x, y, expected):
 ])
 def test_evidence_found(evidence, expected):
     assert evaluate.evidence_found(evidence, "Requirements:\nExperience with PyTorch and Kubernetes.") is expected
+
+
+def test_broken_links_count_as_not_open(sessions, env):
+    conn = memory.connect()
+    try:
+        urls = [r[0] for r in conn.execute("SELECT url FROM opportunities WHERE status = 'open' ORDER BY fit_score DESC")]
+        env["broken"].add(urls[0])
+        opps = evaluate.opportunity_accuracy(conn, SESSION_DATE, {"internship"}, network=True)
+    finally:
+        conn.close()
+    assert opps["links_resolving"] == opps["still_open"] == f"{len(urls) - 1}/{len(urls)} ({(len(urls) - 1) / len(urls):.0%})"

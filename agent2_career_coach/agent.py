@@ -11,8 +11,18 @@ An unfinished session for the same date (e.g. the terminal was closed mid-questi
 
 import argparse
 import logging
+import sys
 from datetime import date
 from pathlib import Path
+
+try:
+    import termios
+except ImportError:      # Windows
+    termios = None
+try:
+    import readline      # noqa: F401  input() then reads lines past the terminal's ~1024-character limit (macOS)
+except ImportError:
+    pass
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
@@ -24,6 +34,7 @@ from state import CoachState
 
 TASK_STATUSES = {"d": "done", "p": "partial", "o": "open", "x": "dropped", "": "open"}
 COMMANDS = {"hint", "skip", "quit"}
+ANSWER_MARKER = "<!-- Write your answer below this line, save the file, then press Enter in the terminal. -->"
 
 
 def build_graph(checkpointer=None):
@@ -67,9 +78,16 @@ def build_graph(checkpointer=None):
 
 # --- Terminal prompts for the interrupts -------------------------------------
 
+def discard_typeahead() -> None:
+    """Drop keys typed while the agent was working, so a stray Enter doesn't submit an answer."""
+    if termios and sys.stdin.isatty():
+        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+
+
 def ask_check_in(payload: dict) -> list[dict]:
     """Status of each open plan task from the last session."""
     print("\nPlan check-in: [d]one, [p]artial, [o]pen (Enter), or [x] drop")
+    discard_typeahead()
     updates = []
     for task in payload["tasks"]:
         while (raw := input(f"  {task['task']} (due {task['due']}): ").strip().lower()) not in TASK_STATUSES:
@@ -78,16 +96,27 @@ def ask_check_in(payload: dict) -> list[dict]:
     return updates
 
 
-def read_text_answer() -> str:
-    """Lines until an empty line (leading empty lines are ignored)."""
-    lines = []
-    while True:
-        line = input()
-        if not line.strip():
-            if lines:
-                return "\n".join(lines)
-            continue
-        lines.append(line)
+def answer_file(question: dict) -> Path:
+    """Workspace file for a text answer: the question, then my answer below ANSWER_MARKER."""
+    return config.WORKSPACE_DIR / f"{question['id']}.md"
+
+
+def prepare_answer_file(question: dict) -> Path:
+    """Create the answer file; an existing one is kept, so a resumed session keeps a half-written answer."""
+    path = answer_file(question)
+    if not path.exists():
+        config.WORKSPACE_DIR.mkdir(exist_ok=True)
+        path.write_text(f"# {question['id']} · {question['skill']} · {question['kind']}\n\n"
+                        f"{question['prompt']}\n\n{ANSWER_MARKER}\n\n")
+    return path
+
+
+def read_answer(question: dict) -> str:
+    """My answer from the workspace file; empty while a coding file still has only the starter code."""
+    if question["kind"] == "coding":
+        text = Path(question["workspace_file"]).read_text()
+        return "" if text.strip() == (question.get("starter_code") or nodes.EMPTY_STARTER).strip() else text
+    return answer_file(question).read_text().split(ANSWER_MARKER, 1)[-1].strip()
 
 
 def show_grade(grade: dict | None) -> None:
@@ -107,16 +136,14 @@ def ask_question(payload: dict) -> dict:
     label = "Follow-up" if q.get("parent_id") else f"Question {payload['number']}/{payload['total']}"
     print(f"\n{label} · {q['skill']} · {q['kind']} · difficulty {q['difficulty']}\n\n{q['prompt']}\n")
     coding = q["kind"] == "coding"
-    if coding:
-        print(f"Write your solution in {q['workspace_file']}, then press Enter.")
-    else:
-        print("Type your answer and finish with an empty line.")
+    path = Path(q["workspace_file"]) if coding else prepare_answer_file(q)
+    print(f"Write your {'solution' if coding else 'answer'} in {path}, save it, then press Enter.")
     print("Commands: hint, skip, quit")
+    discard_typeahead()
 
     hints, used = q.get("hints") or [], 0
     while True:
-        reply = input("> ").strip() if coding else read_text_answer()
-        command = reply.strip().lower()
+        command = input("> ").strip().lower()
         if command in {"skip", "quit"}:
             return {"action": command, "answer": "", "hints_used": used}
         if command == "hint":
@@ -126,10 +153,14 @@ def ask_question(payload: dict) -> dict:
             else:
                 print("No more hints.")
             continue
-        answer = Path(q["workspace_file"]).read_text() if coding else reply
+        if command:
+            print(f"Write the answer in {path.name}, then press Enter. Commands: hint, skip, quit")
+            continue
+        answer = read_answer(q)
         if answer.strip():
             return {"action": "answer", "answer": answer, "hints_used": used}
-        print("Empty answer. Type skip to skip this question.")
+        print("The file still has only the starter code. Save your solution and press Enter, or type skip." if coding
+              else f"No answer below the marker line in {path.name} yet. Save it and press Enter, or type skip.")
 
 
 def answer_interrupt(payload: dict):
@@ -138,6 +169,10 @@ def answer_interrupt(payload: dict):
 
 # --- Run ---------------------------------------------------------------------
 
+class SessionExists(Exception):
+    """A finished session is saved for this date; a second one would overwrite its questions and report."""
+
+
 def run(session_date: date, interactive: bool = True, refresh: bool = False,
         session_size: int = config.SESSION_QUESTIONS, extra_postings: list[str] | None = None) -> dict:
     config.DATA_DIR.mkdir(exist_ok=True)
@@ -145,6 +180,9 @@ def run(session_date: date, interactive: bool = True, refresh: bool = False,
         app = build_graph(checkpointer)
         thread = {"configurable": {"thread_id": session_date.isoformat()}}
         snapshot = app.get_state(thread)
+        if snapshot.values and not snapshot.next:
+            raise SessionExists(f"The session for {session_date.isoformat()} is already finished "
+                                f"({snapshot.values.get('report_path')}). Use --date for another day.")
         if interactive and snapshot.next and snapshot.interrupts:
             print(f"Resuming the unfinished session for {session_date.isoformat()}.")
             result = app.invoke(Command(resume=answer_interrupt(snapshot.interrupts[0].value)), thread)
@@ -171,11 +209,14 @@ def main():
     parser.add_argument("--report-only", action="store_true", help="report from stored data, no questions")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    for noisy in ("httpx", "httpcore", "urllib3"):
+    for noisy in ("httpx", "httpx2", "httpcore", "urllib3"):     # the Anthropic SDK logs requests as httpx2
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    result = run(args.date, refresh=args.refresh, extra_postings=args.add_posting,
-                 session_size=0 if args.report_only else args.questions)
+    try:
+        result = run(args.date, refresh=args.refresh, extra_postings=args.add_posting,
+                     session_size=0 if args.report_only else args.questions)
+    except SessionExists as exc:
+        raise SystemExit(str(exc))
     print(result.get("report_markdown", ""))
     for key in ("report_path", "transcript_path"):
         if result.get(key):

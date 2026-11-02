@@ -112,7 +112,10 @@ def opportunity_accuracy(conn: sqlite3.Connection, today: date, target_types: se
     checked = open_rows[:MAX_LIVE_CHECKS]
     resolving, still_open, readable = 0, 0, 0
     for r in checked:
-        resolving += tools.url_resolves(r["url"])
+        if not tools.url_resolves(r["url"]):     # removed; Tavily's cached copy would still read as open
+            readable += 1
+            continue
+        resolving += 1
         posting = tools.load_posting(r["url"])
         if posting is not None:
             readable += 1

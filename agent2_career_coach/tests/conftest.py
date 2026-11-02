@@ -30,18 +30,18 @@ def env(tmp_path, monkeypatch):
     embeddings = DeterministicFakeEmbedding(size=32)
     monkeypatch.setattr(nodes, "embeddings_or_none", lambda: embeddings)
 
-    unreadable = set()
+    unreadable, broken = set(), set()
     monkeypatch.setattr(nodes.tools, "search_opportunities", search_results)
     monkeypatch.setattr(nodes.tools, "load_posting", lambda url: None if url in unreadable else
                         {"text": POSTING_TEXT[url], "word_count": 210, "published": None, "can_apply": None})
     monkeypatch.setattr(nodes.tools, "search_resources", lambda query, sources, max_results=5: [
         {"url": f"https://docs.langchain.com/guide-{len(query)}", "title": f"Guide for {query}",
          "source": "LangChain / LangGraph docs", "snippet": "A guide."}])
-    monkeypatch.setattr(nodes.tools, "url_resolves", lambda url: True)
+    monkeypatch.setattr(nodes.tools, "url_resolves", lambda url: url not in broken)
     monkeypatch.setattr(nodes.tools, "search_arxiv", lambda *a, **k: [])
 
     def run(answers, session_date, **kwargs):
         monkeypatch.setattr(agent, "answer_interrupt", answers)
         return agent.run(session_date, **kwargs)
 
-    return {"llm": fake, "tmp": tmp_path, "run": run, "unreadable": unreadable}
+    return {"llm": fake, "tmp": tmp_path, "run": run, "unreadable": unreadable, "broken": broken}

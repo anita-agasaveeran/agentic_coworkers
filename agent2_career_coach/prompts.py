@@ -112,7 +112,9 @@ Target roles:
 Skill demand from target postings (skill: importance 0-1, level asked):
 {demand}
 
-Readiness per skill after this session (0-1; "not yet assessed" means self-rated):
+Readiness per skill after this session (0-1), with its basis: assessed (graded answers), self-rated
+(the candidate's own level), reading only (articles read, no rating or answers), or no evidence.
+Describe each skill's readiness with its basis; e.g. don't call a reading-only number self-rated:
 {readiness}
 
 Today's graded answers (id, skill, score, misconceptions):
@@ -126,7 +128,8 @@ RECOMMEND_PLAN = """Build a {days}-day preparation plan for a candidate.
 Gaps (largest first):
 {gaps}
 
-Unfinished tasks from the last plan (carry over the ones still useful):
+Unfinished tasks from the last plan. They stay in the plan as they are, so don't rewrite,
+repeat, or extend them; write only new tasks:
 {carry_over}
 
 Candidate resources found (numbered, links already checked):
@@ -135,7 +138,7 @@ Candidate resources found (numbered, links already checked):
 Pick the most useful resources for each gap by number, and write concrete tasks with a skill,
 an optional resource number, estimated hours, a due day (1-{days}), and a "done when" check
 the candidate can verify (e.g. "can implement X from memory and pass the tests"). Keep the
-total under {max_hours} hours."""
+new tasks under {max_hours} hours in total."""
 
 JUDGE_QUESTION = """Rate this generated practice question.
 

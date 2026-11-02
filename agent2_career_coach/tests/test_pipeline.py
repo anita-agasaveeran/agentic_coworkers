@@ -4,6 +4,9 @@ import sqlite3
 from datetime import timedelta
 from pathlib import Path
 
+import pytest
+
+import agent
 from fakes import CODING, SESSION_DATE, ScriptedAnswers
 
 EXTRA = "https://example.org/my-posting"
@@ -96,6 +99,14 @@ def test_report_plan_and_memory(env):
     assert assessed["python"] in (0, 1) and sum(assessed.values()) >= 2
 
 
+def test_postings_with_broken_links_are_dropped(env):
+    lever = "https://jobs.lever.co/beta/0f6a2c1e-1b2c-4d5e-8f90-123456789abc"
+    env["broken"].add(lever)
+    result, _ = first_session(env)
+    assert lever not in {o["url"] for o in result["opportunities"]}
+    assert {o["url"]: o["status"] for o in result["rejected"]}[lever] == "closed"
+
+
 def test_next_session_checks_in_and_reuses_opportunities(env):
     first_session(env)
     queries = env["llm"].count("OpportunityQueries")
@@ -109,10 +120,12 @@ def test_next_session_checks_in_and_reuses_opportunities(env):
     report = result["report_markdown"]
     assert "since Nov 1, 2026" in report and "completed since the last session: 1 of 2" in report
     assert "Build an agent _(carried over)_" in report
-    # day 1's two tasks: one done at the check-in, one carried over; plus day 2's two new tasks
+    # day 1's two tasks: one done at the check-in, one carried over; day 2's plan repeats both,
+    # and the repeat of the carried-over task is dropped
     assert sorted(db_rows(env, "SELECT created_on, task, status FROM plan_tasks")) == [
         ("2026-11-01", "Build an agent", "open"), ("2026-11-01", "Read the RAG guide", "done"),
-        ("2026-11-03", "Build an agent", "open"), ("2026-11-03", "Read the RAG guide", "open")]
+        ("2026-11-03", "Read the RAG guide", "open")]
+    assert [t["task"] for t in result["prep_plan"]].count("Build an agent") == 1
 
 
 def test_retest_of_a_weak_skill(env):
@@ -154,3 +167,10 @@ def test_without_tavily_uses_stored_opportunities(env, monkeypatch):
     assert env["llm"].count("OpportunityQueries") == 0 and result["opportunities"] == []
     assert result["skill_demand"] == {"python": 1.0, "rag": 1.0}       # falls back to profile skills
     assert "No opportunities analyzed yet" in result["report_markdown"]
+
+
+def test_a_finished_date_is_not_run_twice(env):
+    first, _ = first_session(env)
+    with pytest.raises(agent.SessionExists):
+        env["run"](ScriptedAnswers(), SESSION_DATE, session_size=3)
+    assert len(db_rows(env, "SELECT id FROM questions")) == len(first["questions"])

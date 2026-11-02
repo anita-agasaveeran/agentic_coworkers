@@ -104,13 +104,26 @@ def test_agent1_tools_load_without_replacing_our_state_module():
     assert sys.modules["state"] is state
 
 
-def test_cli_question_hint_then_answer(monkeypatch):
-    replies = iter(["hint", "", "A trie stores keys by prefix.", ""])
-    monkeypatch.setattr("builtins.input", lambda *a: next(replies))
-    payload = {"number": 1, "total": 5, "question": {
-        "skill": "algorithms_data_structures", "kind": "concept", "difficulty": 1,
-        "prompt": "What is a trie?", "hints": ["Think prefixes."], "parent_id": None}}
-    assert agent.ask_question(payload) == {"action": "answer", "answer": "A trie stores keys by prefix.", "hints_used": 1}
+def test_cli_text_answer_is_read_from_the_workspace_file(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(config, "WORKSPACE_DIR", tmp_path)
+    question = {"id": "q1", "skill": "algorithms_data_structures", "kind": "concept", "difficulty": 1,
+                "prompt": "What is a trie?", "hints": ["Think prefixes."], "parent_id": None}
+    path = agent.answer_file(question)
+
+    def replies():
+        yield "hint"
+        yield ""                                            # Enter before writing an answer
+        yield "a trie is a tree"                            # typed at the prompt instead of in the file
+        path.write_text(path.read_text() + "A trie stores keys by prefix.\n\nLookups take O(length).\n")
+        yield ""
+
+    it = replies()
+    monkeypatch.setattr("builtins.input", lambda *a: next(it))
+    assert agent.ask_question({"number": 1, "total": 5, "question": question}) == {
+        "action": "answer", "answer": "A trie stores keys by prefix.\n\nLookups take O(length).", "hints_used": 1}
+    out = capsys.readouterr().out
+    assert "What is a trie?" in path.read_text() and "No answer below the marker line" in out
+    assert "Write the answer in q1.md" in out
 
 
 def test_cli_coding_answer_reads_workspace_file(monkeypatch, tmp_path):
@@ -122,6 +135,25 @@ def test_cli_coding_answer_reads_workspace_file(monkeypatch, tmp_path):
         "skill": "python", "kind": "coding", "difficulty": 2, "prompt": "Write f.",
         "hints": [], "parent_id": None, "workspace_file": str(solution)}}
     assert agent.ask_question(payload)["answer"] == solution.read_text()
+
+
+@pytest.mark.parametrize("starter", ["def f():\n    raise NotImplementedError\n", None])
+def test_cli_coding_rejects_the_untouched_starter(monkeypatch, tmp_path, capsys, starter):
+    solution = tmp_path / "q1.py"
+    solution.write_text(starter or nodes.EMPTY_STARTER)
+
+    def replies():
+        yield ""                                            # Enter before editing the file
+        solution.write_text("def f():\n    return 1\n")
+        yield ""
+
+    it = replies()
+    monkeypatch.setattr("builtins.input", lambda *a: next(it))
+    payload = {"number": 1, "total": 5, "question": {
+        "skill": "python", "kind": "coding", "difficulty": 1, "prompt": "Write f.", "hints": [],
+        "parent_id": None, "workspace_file": str(solution), "starter_code": starter}}
+    assert agent.ask_question(payload)["answer"] == "def f():\n    return 1\n"
+    assert "still has only the starter code" in capsys.readouterr().out
 
 
 def test_cli_check_in(monkeypatch):

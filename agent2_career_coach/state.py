@@ -146,7 +146,10 @@ class PostingAnalysis(BaseModel):
     location: str | None
     deadline: str | None = Field(description="Application deadline as ISO date if the page states one, else null")
     closed: bool = Field(description="True if the page says applications are closed")
-    eligible: bool = Field(description="False if the candidate clearly fails a stated hard requirement (degree, timing, authorization)")
+    eligible: bool = Field(description="False if the candidate clearly fails a stated hard requirement (degree, timing, "
+                                       "authorization), or the opportunity is for a different kind of applicant than a "
+                                       "student or early-career individual (e.g. grants for faculty or principal "
+                                       "investigators, programs for established companies)")
     responsibilities: list[str] = Field(description="3-6 main responsibilities or research activities")
     requirements: list[SkillRequirement]
 

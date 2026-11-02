@@ -8,8 +8,10 @@ import itertools
 import json
 import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from difflib import SequenceMatcher
 from typing import Literal
 
 from langgraph.types import interrupt
@@ -22,6 +24,9 @@ from state import (Assessment, CoachState, GeneratedQuestion, Grade, Opportunity
                    PlanTask, PostingAnalysis, PrepPlanOutput, Question, Resource, SkillReq, StrengthsGaps)
 
 log = logging.getLogger(__name__)
+
+EMPTY_STARTER = "# Write your solution here.\n"    # workspace file for a coding question without starter code
+RESTATED_RATIO = 0.75     # a new plan task this similar to a carried-over one is a repeat
 
 
 # --- Helpers -----------------------------------------------------------------
@@ -61,7 +66,7 @@ def follow_up_mode(score: float) -> Literal["probe", "challenge"] | None:
 def public_question(question: Question) -> dict:
     """What I see: no reference answer or tests. Hints are revealed by the CLI on request."""
     return {k: question.get(k) for k in
-            ("id", "skill", "kind", "difficulty", "prompt", "hints", "workspace_file", "parent_id")}
+            ("id", "skill", "kind", "difficulty", "prompt", "hints", "workspace_file", "starter_code", "parent_id")}
 
 
 def profile_for_prompt(profile: dict) -> str:
@@ -396,8 +401,8 @@ def analyze_requirements(state: CoachState) -> dict:
     """Load each candidate and --add-posting URL (tools.load_posting); LLM (PostingAnalysis)
     extracts requirements.
 
-    Drops non-postings, closed postings (tools.posting_is_open), and ineligible ones (kept in
-    `rejected` so they aren't analyzed again); maps skills to skills.yaml ids; computes fit_score.
+    Drops broken links, non-postings, closed postings (tools.posting_is_open), and ineligible ones
+    (kept in `rejected` so they aren't analyzed again); maps skills to skills.yaml ids; computes fit_score.
     Merges with the stored opportunities, ranked by fit. Titles come from the search result; for
     --add-posting URLs, from the LLM only if the title appears in the page text.
     """
@@ -414,11 +419,17 @@ def analyze_requirements(state: CoachState) -> dict:
     if not items:
         return {"posting_texts": {}}
 
+    urls = [i["url"] for i in items]
     with ThreadPoolExecutor(max_workers=8) as pool:
-        postings = list(pool.map(tools.load_posting, [i["url"] for i in items]))
+        postings = list(pool.map(tools.load_posting, urls))
+        resolving = list(pool.map(tools.url_resolves, urls))
     rejected, readable = [], []
-    for item, posting in zip(items, postings):
-        if posting is None:
+    for item, posting, resolves in zip(items, postings, resolving):
+        if not resolves:     # removed postings can still be read from Tavily's cached copy
+            log.warning("posting link is broken: %s", item["url"])
+            if item.get("title"):
+                rejected.append({**item, "status": "closed", "requirements": []})
+        elif posting is None:
             log.warning("couldn't read posting: %s", item["url"])
             if item.get("title"):
                 rejected.append({**item, "status": "dismissed", "requirements": []})
@@ -597,7 +608,7 @@ def generate_question(state: CoachState) -> dict:
     if kind == "coding":
         config.WORKSPACE_DIR.mkdir(exist_ok=True)
         path = config.WORKSPACE_DIR / f"{qid}.py"
-        path.write_text(out.starter_code or "# Write your solution here.\n")
+        path.write_text(out.starter_code or EMPTY_STARTER)
         question.update(starter_code=out.starter_code, tests=tests, reference_solution=out.reference_solution,
                         workspace_file=str(path))
     return {"questions": questions + [question]}
@@ -736,6 +747,15 @@ def requirement_refs(opportunities: list[Opportunity], demand: dict[str, float],
             for i, (o, r) in enumerate(reqs[:limit], 1)]
 
 
+def readiness_basis(skill: str, assessed, profile: dict, readiness: dict) -> str:
+    """Where a readiness number comes from, for the report and the summary prompt."""
+    if skill in assessed:
+        return "assessed"
+    if skill in profile.get("skills", {}):
+        return "self-rated"
+    return "reading only" if skill in readiness else "no evidence"
+
+
 def summarize_strengths_gaps(state: CoachState) -> dict:
     """Update readiness with today's scores in code; LLM (StrengthsGaps) writes cited findings.
 
@@ -767,7 +787,7 @@ def summarize_strengths_gaps(state: CoachState) -> dict:
                           for t in profile.get("targets", [])),
         demand="\n".join(f"- {s}: {demand.get(s, 0):.2f}, level {targets.get(s, 2)}" for s in shown)
                + "\n\nPosting requirements:\n" + "\n".join(f"{rid}: {text}" for rid, text in refs),
-        readiness="\n".join(f"- {s}: {readiness.get(s, 0.0):.2f}" + ("" if s in assessed else " (not yet assessed)")
+        readiness="\n".join(f"- {s}: {readiness.get(s, 0.0):.2f} ({readiness_basis(s, assessed, profile, readiness)})"
                             for s in shown),
         assessments="\n".join(
             f"- {a['question_id']} | {questions[a['question_id']]['skill']} | {questions[a['question_id']]['kind']} | "
@@ -820,11 +840,17 @@ def find_resources(skills_to_cover: list[str], today: date) -> list[Resource]:
     return found
 
 
+def restates(task: str, carried: list[PlanTask]) -> bool:
+    """True when a new task is a reworded carried-over task (e.g. "Carry-over: read X" for "Read X")."""
+    text = re.sub(r"^\s*carry[- ]?over:\s*", "", task.lower())
+    return any(SequenceMatcher(None, text, t["task"].lower()).ratio() >= RESTATED_RATIO for t in carried)
+
+
 def recommend_resources_and_plan(state: CoachState) -> dict:
     """Search resources for the top PLAN_GAPS gaps, keep those whose links resolve, then LLM
     (PrepPlanOutput) picks resources by number and writes PLAN_DAYS of tasks.
 
-    Open tasks from the check-in are carried over as they are; new tasks are capped at
+    Open tasks from the check-in are carried over as they are; new tasks fill what is left of
     PLAN_MAX_HOURS. Resource titles and URLs come from the search results.
     """
     today = state["session_date"]
@@ -834,7 +860,8 @@ def recommend_resources_and_plan(state: CoachState) -> dict:
     updates = {u["id"]: u["status"] for u in state.get("plan_updates", [])}
     carried = [{**t, "status": updates.get(t["id"], t["status"])} for t in state.get("open_tasks", [])]
     carried = [t for t in carried if t["status"] in ("open", "partial")]
-    if not top:
+    budget = max(config.PLAN_MAX_HOURS - sum(t.get("hours") or 0 for t in carried), 0)
+    if not top or not budget:
         return {"resources": [], "prep_plan": carried}
 
     candidates = find_resources(top, today)
@@ -845,7 +872,7 @@ def recommend_resources_and_plan(state: CoachState) -> dict:
             misconceptions.setdefault(questions[a["question_id"]]["skill"], []).extend(a.get("misconceptions", []))
     targets = state.get("skill_targets", {})
     out = structured(PrepPlanOutput).invoke(prompts.RECOMMEND_PLAN.format(
-        days=config.PLAN_DAYS, max_hours=config.PLAN_MAX_HOURS,
+        days=config.PLAN_DAYS, max_hours=budget,
         gaps="\n".join(f"- {s}: gap {gaps[s]:.2f}, readiness {readiness.get(s, 0.0):.2f}, target "
                        f"{config.TARGET_READINESS[targets.get(s, 2)]:.2f}; today's misconceptions: "
                        f"{'; '.join(misconceptions.get(s, [])) or 'none'}" for s in top),
@@ -862,7 +889,7 @@ def recommend_resources_and_plan(state: CoachState) -> dict:
     tasks, hours = [], 0.0
     for t in sorted(out.tasks, key=lambda t: t.due_in_days):
         task_hours = round(min(max(float(t.hours), 0.25), 8.0), 2)
-        if hours + task_hours > config.PLAN_MAX_HOURS:
+        if hours + task_hours > budget or restates(t.task, carried):
             continue
         hours += task_hours
         resource = None
@@ -949,8 +976,8 @@ def render_report(state: CoachState, trend: dict[str, list[tuple[str, float]]]) 
         if s.startswith("other:"):
             lines.append(f"| {md_cell(s.removeprefix('other:'))} (outside taxonomy) | {d:.2f} | {targets.get(s, 2)} | — | — |")
             continue
-        rated = ("" if s in assessed else " (self-rated)" if s in profile.get("skills", {})
-                 else " (reading only)" if s in readiness else " (no evidence)")
+        basis = readiness_basis(s, assessed, profile, readiness)
+        rated = f" ({basis})" if basis != "assessed" else ""
         lines.append(f"| {s} | {d:.2f} | {targets.get(s, 2)} | {pct(readiness.get(s, 0.0))}{rated} | {gaps[s]:.2f} |")
     lines.append("")
 
@@ -981,7 +1008,9 @@ def render_report(state: CoachState, trend: dict[str, list[tuple[str, float]]]) 
     refs = state.get("requirement_refs", {})
     for heading, findings in (("Strengths", state.get("strengths", [])), ("Gaps (largest first)", state.get("gaps", []))):
         lines += [f"## {heading}", ""]
-        lines += [f"- **{f['skill']}**: {f['summary']} _(evidence: {', '.join(f['evidence'])})_" for f in findings] or ["—"]
+        # a summary's own list items are indented so they nest under the finding
+        lines += [f"- **{f['skill']}**: {f['summary'].replace(chr(10), chr(10) + '  ')} _(evidence: {', '.join(f['evidence'])})_"
+                  for f in findings] or ["—"]
         lines.append("")
 
     lines += ["## Progress", ""]

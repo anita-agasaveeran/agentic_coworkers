@@ -145,3 +145,12 @@ def test_match_criteria_by_name_then_position():
 ])
 def test_resource_query(skill, expected):
     assert nodes.resource_query(skill, config.load_skills()) == expected
+
+
+@pytest.mark.parametrize("task, expected", [
+    ("Carry-over: read the RAG guide and take notes.", True),
+    ("Read the RAG guide and take notes", True),
+    ("Solve 10 interval problems", False),
+])
+def test_restates_a_carried_over_task(task, expected):
+    assert nodes.restates(task, [{"task": "Read the RAG guide and take notes."}]) is expected
