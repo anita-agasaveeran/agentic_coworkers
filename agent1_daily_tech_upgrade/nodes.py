@@ -72,11 +72,9 @@ def is_diverse(article: Article, picked: list[Article]) -> bool:
 
 
 def matched_interest(article: Article, interests: dict[str, float]) -> str | None:
-    """Highest-weight profile interest that shares a keyword with one of the article's topics."""
-    for interest, _ in sorted(interests.items(), key=lambda kv: -kv[1]):
-        if any(memory.interest_matches_topic(interest, t) for t in article.get("topics", [])):
-            return interest
-    return None
+    """The profile interest an article serves: the scorer's label, else the best keyword match."""
+    found = memory.article_interests(article, interests)
+    return found[0] if found else None
 
 
 def pick_diverse(ranked: list[Article], k: int, threshold: float,
@@ -229,11 +227,14 @@ def score_and_rank(state: BriefState) -> dict:
         result = scorer.invoke(prompts.SCORE_CANDIDATES.format(
             profile=profile_for_prompt(profile),
             recent_topics=json.dumps(profile["progress"]["recent_topics"]),
+            liked_topics=", ".join(profile["progress"]["liked_topics"]) or "none yet",
+            disliked_topics=", ".join(profile["progress"]["disliked_topics"]) or "none yet",
             candidates=listing,
         ))
         llm_scores.update({s.id: s for s in result.scores if start <= s.id < start + len(batch)})
 
     weights = config.SCORE_WEIGHTS
+    interest_keys = {k.lower(): k for k in profile.get("interests", {})}
     scored: list[Article] = []
     for i, article in enumerate(candidates):
         s = llm_scores.get(i)
@@ -249,6 +250,7 @@ def score_and_rank(state: BriefState) -> dict:
         scored.append({
             **article,
             "topics": [t.strip().lower() for t in s.topics if t.strip()][:3],
+            "interest": interest_keys.get(s.interest.strip().lower()),
             "scores": scores,
             "total_score": round(sum(weights[k] * scores[k] for k in weights), 4),
         })

@@ -68,8 +68,51 @@ sources:
     domains: [ai.meta.com]
     feeds: []                       # no public feed
 
+  # --- Physics and astrophysics (checked 2026-11-01) ---
+  - name: APS Physics Magazine
+    tier: 1
+    domains: [physics.aps.org]
+    feeds: [https://feeds.aps.org/rss/recent/physics.xml]
+
+  - name: Nature (Astronomy, Physics)
+    tier: 1
+    domains: [nature.com]
+    feeds:
+      - https://www.nature.com/natastron.rss
+      - https://www.nature.com/nphys.rss
+
+  - name: AAS Nova
+    tier: 1
+    domains: [aasnova.org]
+    feeds: [https://aasnova.org/feed/]
+
+  - name: NASA
+    tier: 1
+    domains: [nasa.gov]
+    feeds: [https://www.nasa.gov/news-release/feed/]
+
+  - name: ESA
+    tier: 1
+    domains: [esa.int]
+    feeds: [https://www.esa.int/rssfeed/Our_Activities/Space_Science]
+
+  - name: Quanta Magazine
+    tier: 2
+    domains: [quantamagazine.org]
+    feeds: [https://www.quantamagazine.org/physics/feed/]
+
+  - name: Physics World
+    tier: 2
+    domains: [physicsworld.com]
+    feeds: [https://physicsworld.com/feed/]
+
+  - name: Phys.org (astronomy)
+    tier: 2
+    domains: [phys.org]
+    feeds: [https://phys.org/rss-feed/space-news/astronomy/]
+
 # arXiv is queried through its API (tools.search_arxiv), not as a feed.
 arxiv:
   tier: 1
-  categories: [cs.AI, cs.CL, cs.LG, cs.IR]
+  categories: [cs.AI, cs.CL, cs.LG, cs.IR, astro-ph*, gr-qc, physics.comp-ph, physics.data-an]
   max_results_per_query: 10

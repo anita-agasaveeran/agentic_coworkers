@@ -17,6 +17,7 @@ venv/
 
 # Agent runtime data (personal history, vector stores, checkpoints)
 **/data/*.db
+**/data/*.db-*
 **/data/*.sqlite
 **/data/*.json
 

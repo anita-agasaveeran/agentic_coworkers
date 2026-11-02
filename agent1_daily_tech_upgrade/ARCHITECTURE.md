@@ -119,7 +119,7 @@ class BriefState(TypedDict):
 | `load_page(url)` | `requests` + BeautifulSoup main-content extraction (largest `<article>`, else `<main>`), falling back to Tavily extract when a site blocks scripts (e.g. openai.com); also reads the publication date from meta tags. Returns `None` if neither yields enough text. |
 | `url_resolves(url)` | Link check. 401/403/429 count as resolving (the page exists but blocks scripts). |
 
-**Source allow-list with authority tiers** (stored in `sources.yaml`; feeds checked 2026-10-29):
+**Source allow-list with authority tiers** (stored in `sources.yaml`; AI/ML feeds checked 2026-10-29, physics/astrophysics feeds 2026-11-01):
 
 | Tier | Source | Access method |
 |---|---|---|
@@ -127,7 +127,9 @@ class BriefState(TypedDict):
 | 1 | Google Research, Google AI blog, DeepMind | RSS (3 feeds) |
 | 1 | Microsoft Research, AWS ML Blog, IBM Research, LangChain/LangGraph, IEEE Spectrum (AI) | RSS |
 | 1 | Anthropic, ACM (CACM, Queue) | Tavily with `include_domains` (no feed / feeds return 403) |
-| 1 | arXiv (cs.AI, cs.CL, cs.LG, cs.IR) | arXiv API |
+| 1 | arXiv (cs.AI, cs.CL, cs.LG, cs.IR, astro-ph.*, gr-qc, physics.comp-ph, physics.data-an) | arXiv API |
+| 1 | APS Physics Magazine, Nature Astronomy + Nature Physics, AAS Nova, NASA, ESA (space science) | RSS (APS pages block scripts; text comes from Tavily extract) |
+| 2 | Quanta Magazine (physics), Physics World, Phys.org (astronomy) | RSS |
 | 2 | Hugging Face, NVIDIA Technical Blog | RSS |
 | 2 | Meta AI | Tavily (no feed) |
 
@@ -143,9 +145,10 @@ class BriefState(TypedDict):
 | LangGraph checkpointer (`SqliteSaver` / `InMemorySaver`) | short-term, per run | full `BriefState` per `thread_id = run_date` | resuming after `interrupt()`, debugging, re-running a day |
 
 **How personalization uses memory:**
-- Topics with high `avg_rating` get a relevance boost; topics tagged "less like this" get a penalty.
-- Interests with low `exposures` in the last 14 days get extra queries in `plan_queries` (spreading coverage).
-- Articles too similar to anything already read get a lower novelty score.
+- Topics rated ≥ 4 or tagged "more" are passed to the scorer as liked (relevance up); topics rated ≤ 2 or tagged "less" as disliked (relevance down). Both also steer `plan_queries`.
+- Profile interests with no matching article in the last 14 days are listed as under-covered, and `plan_queries` favors them.
+- The scorer labels each candidate with the profile interest it serves. That label drives the interest spread in selection and is stored with the article's topics, so coverage tracking works even when topic words differ from the interest name (e.g. "exoplanet atmospheres" → astrophysics). Keyword and acronym matching is the fallback.
+- Articles nearly identical to an earlier summary (cosine similarity ≥ 0.9) are dropped; the LLM's novelty score uses the recent-topics list.
 
 ---
 

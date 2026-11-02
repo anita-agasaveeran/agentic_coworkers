@@ -10,12 +10,20 @@ From this folder, after the repo-level setup in the [root README](../README.md):
 ../.venv/bin/python agent.py                 # today's brief, then asks for ratings
 ../.venv/bin/python agent.py --no-feedback   # skip the rating step
 ../.venv/bin/python agent.py --date 2026-10-29
+../.venv/bin/python agent.py --rate 2026-10-29  # rate a brief generated earlier
 ../.venv/bin/python evaluate.py              # report over all saved runs -> eval_reports/
 ../.venv/bin/python evaluate.py --days 7 --no-llm --no-network   # last 7 runs, offline checks only
 ../.venv/bin/python -m pytest
 ```
 
 Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints live in `data/` (gitignored).
+
+## Sample results
+
+Three real daily runs (2026-10-30 to 2026-11-01), each rated afterwards:
+
+- Briefs: [2026-10-30](briefs/2026-10-30.md), [2026-10-31](briefs/2026-10-31.md), [2026-11-01](briefs/2026-11-01.md)
+- Evaluation: [eval_reports/eval_2026-11-01.md](eval_reports/eval_2026-11-01.md): 9/9 links and titles verified, LLM-judge faithfulness 4.33/5, precision@3 44%, all briefs within 15–20 minutes. The judge's scores vary a little between runs.
 
 ## Configure
 
@@ -35,7 +43,7 @@ Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints l
 | Nodes (`nodes.py`) | done; full graph tested with a fake LLM and run live end to end (≈2 min per run) |
 | Prompts | revised after live runs |
 | Evaluation (`evaluate.py`) | done; tested offline and on live runs |
-| Source feed URLs (`sources.yaml`) | checked 2026-10-29 (10 feeds) |
+| Source feed URLs (`sources.yaml`) | 20 feeds: AI/ML checked 2026-10-29, physics/astrophysics checked 2026-11-01 |
 
 ## API keys
 

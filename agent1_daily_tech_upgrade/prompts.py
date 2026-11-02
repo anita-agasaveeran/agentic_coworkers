@@ -37,6 +37,9 @@ Reader profile:
 Topics the reader has read about recently:
 {recent_topics}
 
+From the reader's ratings: topics they liked: {liked_topics}; topics they want less of: {disliked_topics}.
+Raise relevance for articles on liked topics and lower it for articles on topics they want less of.
+
 Candidates ([id] title | source | snippet):
 {candidates}
 
@@ -44,8 +47,9 @@ For each candidate, using its id, give integer scores 1-5:
 - relevance: fit with the reader's interests and career goals
 - depth: 1 = announcement or marketing, 5 = detailed technical content (methods, architecture, results)
 - novelty: how new this is for the reader, given the recent topics
-Also give 1-3 short topic labels. Score only from the information given; do not guess at content
-that isn't in the snippet."""
+Also give 1-3 short topic labels, and the one profile interest the article serves most, copied
+exactly from the profile's "interests" keys (or "none"). Score only from the information given;
+do not guess at content that isn't in the snippet."""
 
 JUDGE_FAITHFULNESS = """You check a summary against its source text for factual support.
 

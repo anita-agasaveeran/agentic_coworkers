@@ -25,7 +25,7 @@ LOOKBACK_DAYS = 3                 # initial window (72 h)
 BROADENED_LOOKBACK_DAYS = 7       # window used after broaden_queries
 MAX_RESULTS_PER_QUERY = 8
 NUM_QUERIES = (5, 8)              # min/max queries from plan_queries
-ARXIV_QUERIES = 4                 # arXiv allows one request per 3 s, so keep this small
+ARXIV_QUERIES = 5                 # arXiv allows one request per 3 s, so keep this small
 SCORE_BATCH_SIZE = 30             # candidates per scoring call
 MAX_TEXT_CHARS = 120_000          # cap on article text sent for summarizing (logged when hit)
 

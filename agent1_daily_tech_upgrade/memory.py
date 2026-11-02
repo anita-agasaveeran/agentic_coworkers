@@ -65,6 +65,21 @@ def interest_matches_topic(interest: str, topic: str) -> bool:
     return bool((_keywords(interest) | {_acronym(interest)}) & _keywords(topic))
 
 
+def article_tags(article: Article) -> list[str]:
+    """Topic labels plus the scorer's matched profile interest, as stored in history."""
+    tags = list(article.get("topics", []))
+    if article.get("interest") and article["interest"] not in tags:
+        tags.append(article["interest"])
+    return tags
+
+
+def article_interests(article: Article, interests: dict[str, float]) -> list[str]:
+    """Profile interests an article serves: the scorer's label, then keyword matches, by weight."""
+    found = [i for i in interests if i == article.get("interest")
+             or any(interest_matches_topic(i, t) for t in article.get("topics", []))]
+    return sorted(found, key=lambda i: (i != article.get("interest"), -interests[i]))
+
+
 # --- Reads -------------------------------------------------------------------
 
 def seen_urls(conn: sqlite3.Connection) -> set[str]:
@@ -78,7 +93,8 @@ def learning_progress(conn: sqlite3.Connection, today: date, interests: dict[str
 
     Returns {"recent_topics": {topic: count}, "liked_topics": [...], "disliked_topics": [...],
              "under_covered": [interest, ...]} where under_covered lists profile interests with
-    no matching topic in the window, highest weight first.
+    no matching topic in the window, highest weight first. Liked/disliked never include a
+    profile interest itself, only the specific topics of rated articles.
     """
     start = (today - timedelta(days=window_days)).isoformat()
     recent = Counter()
@@ -99,6 +115,11 @@ def learning_progress(conn: sqlite3.Connection, today: date, interests: dict[str
             liked.update(topics)
         if "less" in tags:
             disliked.update(topics)
+    # Interest labels are stored as topics too, but one rating shouldn't promote or demote a
+    # whole profile interest; its weight in profile.json already says how much it matters.
+    interest_labels = {i.lower() for i in interests}
+    liked = {t for t in liked if t.lower() not in interest_labels}
+    disliked = {t for t in disliked if t.lower() not in interest_labels}
 
     under_covered = [
         interest for interest, _ in sorted(interests.items(), key=lambda kv: -kv[1])
@@ -123,9 +144,9 @@ def record_brief(conn: sqlite3.Connection, run_date: date, selected: list[Articl
                 "INSERT OR IGNORE INTO articles_seen (url, title, source, published, topics, score, shown_on) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (a["url"], a["title"], a["source"], published.isoformat() if published else None,
-                 json.dumps(a.get("topics", [])), a.get("total_score"), run_date.isoformat()),
+                 json.dumps(article_tags(a)), a.get("total_score"), run_date.isoformat()),
             )
-            for topic in a.get("topics", []):
+            for topic in article_tags(a):
                 conn.execute(
                     "INSERT INTO topic_progress (topic, exposures, last_seen) VALUES (?, 1, ?) "
                     "ON CONFLICT(topic) DO UPDATE SET exposures = exposures + 1, last_seen = excluded.last_seen",

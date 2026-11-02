@@ -1,25 +1,58 @@
 {
-  "_note": "TODO: replace the example values below with your real interests, levels, and goals.",
   "name": "Anita",
   "role": "MS Software Engineering student, SJSU",
+  "education": [
+    "BS in Astrophysics",
+    "MS in Software Engineering, SJSU (in progress)"
+  ],
   "career_goals": [
     "ML / AI engineer internship for summer 2027",
-    "Build production LLM agent systems"
+    "Physics / Astrophysics research",
+    "Physics / Astrophysics PhD",
+    "Build production LLM agent systems",
+    "Apply machine learning to physics and astrophysics research"
   ],
   "interests": {
-    "llm agents and multi-agent systems": 1.0,
+    "llm agents and multi-agent systems": 0.8,
+    "physics": 1.0,
+    "astrophysics": 1.0,
+    "machine learning for physics and astronomy": 0.9,
     "retrieval-augmented generation": 0.8,
     "recommender systems": 0.7,
     "cloud ML infrastructure": 0.5
   },
   "skill_levels": {
     "python": "advanced",
+    "software engineering": "advanced",
+    "git and version control": "advanced",
     "deep learning": "intermediate",
+    "machine learning": "intermediate",
+    "astrophysics": "advanced (bachelor's degree)",
+    "physics fundamentals (mechanics, E&M, quantum, thermo)": "advanced (bachelor's degree)",
+    "linear algebra, calculus, and differential equations": "advanced",
+    "observational and data analysis methods": "intermediate",
+    "scientific python (numpy, scipy, astropy)": "intermediate",
+    "probability and statistics": "intermediate",
+    "sql": "intermediate",
+    "cloud platforms (AWS, GCP, Azure)": "beginner",
     "langgraph": "beginner"
   },
+  "learning_goals": [
+    "Go from LangGraph beginner to building multi-agent systems",
+    "Move from undergraduate astrophysics to research-level topics for PhD applications",
+    "Keep up with current arXiv papers in astro-ph and physics",
+    "Learn how ML methods are used on astronomical survey and simulation data"
+  ],
+  "preferred_content": [
+    "research papers with clear methods and results",
+    "engineering deep dives with architecture details",
+    "explainers of new physics and astronomy results"
+  ],
   "preferred_depth": "technical deep dives over news announcements",
   "avoid": [
     "product marketing posts",
-    "funding news"
+    "funding news",
+    "image-of-the-day and quiz posts",
+    "mission press releases without scientific results"
   ]
 }

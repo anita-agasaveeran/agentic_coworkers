@@ -39,6 +39,8 @@ class FakeLLM:
     def __init__(self, scores_override=None):
         self.calls = {"QueryPlan": 0, "CandidateScores": 0, "SummaryOutput": 0}
         self.scores_override = scores_override
+        self.interests: dict[str, str] = {}   # title -> interest label the fake scorer returns
+        self.prompts: list[str] = []
 
     def __call__(self, schema):
         llm = self
@@ -54,6 +56,7 @@ class FakeLLM:
 
     def answer(self, schema, prompt):
         self.calls[schema.__name__] += 1
+        self.prompts.append(prompt)
         if schema is QueryPlan:
             return QueryPlan(queries=["rag evaluation", "multi-agent systems", "recommender systems"],
                              arxiv_queries=["agentic retrieval"])
@@ -62,7 +65,8 @@ class FakeLLM:
             for cid, title in re.findall(r"^\[(\d+)\] (.+?) \|", prompt, flags=re.M):
                 base = title.removesuffix(" (follow-up)")
                 rel, depth, nov, topics = self.scores_override or CATALOG[base][2]
-                scores.append(CandidateScore(id=int(cid), relevance=rel, depth=depth, novelty=nov, topics=topics))
+                scores.append(CandidateScore(id=int(cid), relevance=rel, depth=depth, novelty=nov, topics=topics,
+                                             interest=self.interests.get(base, "none")))
             return CandidateScores(scores=scores)
         title = re.search(r"^Article: (.+?) \(", prompt, flags=re.M).group(1)
         return SummaryOutput(

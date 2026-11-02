@@ -161,7 +161,7 @@ def novelty_and_diversity(runs: list[dict], interests: dict[str, float]) -> dict
     per_run_sources = [len({a["source"] for a in r["selected"]}) / len(r["selected"])
                        for r in runs if r.get("selected")]
     covered = {i for i in interests
-               if any(memory.interest_matches_topic(i, t) for a in articles for t in a.get("topics", []))}
+               if any(i in memory.article_interests(a, interests) for a in articles)}
     return {
         "repeated_articles": len(urls) - len(set(urls)),
         "distinct_sources": len({a["source"] for a in articles}),
@@ -207,7 +207,7 @@ def learning_progress(conn: sqlite3.Connection, runs: list[dict], interests: dic
     for run in runs:
         for a in run.get("selected", []):
             for interest in interests:
-                if any(memory.interest_matches_topic(interest, t) for t in a.get("topics", [])):
+                if interest in memory.article_interests(a, interests):
                     per_interest[interest] += 1
     by_day = conn.execute(
         "SELECT given_on, AVG(rating) FROM feedback WHERE rating IS NOT NULL GROUP BY given_on ORDER BY given_on"

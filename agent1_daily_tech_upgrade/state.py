@@ -16,6 +16,7 @@ class Article(TypedDict, total=False):
     full_text: str | None
     word_count: int | None
     topics: list[str]
+    interest: str | None     # profile interest the scorer matched (exact key), if any
     scores: dict[str, float]     # relevance, depth, novelty, authority, recency (each 0-1)
     total_score: float
     text_source: str         # "full_text" or "snippet" (set by extract_full_text)
@@ -63,6 +64,8 @@ class CandidateScore(BaseModel):
     depth: int = Field(description="1-5: 1 = announcement, 5 = deep technical content")
     novelty: int = Field(description="1-5: how new this is for the reader given their history")
     topics: list[str] = Field(description="1-3 short lowercase topic labels, most specific first")
+    interest: str = Field(description="The reader's interest this article serves most, copied exactly from the "
+                                      "profile's interests, or 'none'")
 
 
 class CandidateScores(BaseModel):
