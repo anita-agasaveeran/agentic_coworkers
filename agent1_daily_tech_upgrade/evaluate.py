@@ -28,6 +28,7 @@ from state import FaithfulnessJudgment
 REPORTS_DIR = config.AGENT_DIR / "eval_reports"
 DATE_TOLERANCE_DAYS = 2          # feed vs. page dates can differ by time zone or "updated" dates
 TITLE_MATCH_RATIO = 0.8
+BOT_WALL = re.compile(r"captcha|just a moment|attention required|access denied|are you a robot", re.I)
 GOOD_RATING = 4
 
 
@@ -62,7 +63,8 @@ def titles_match(stored: str, page: str) -> bool:
 
 
 def page_metadata(url: str) -> tuple[str | None, date | None]:
-    """(title, published) as declared by the page; (None, None) if the page can't be fetched."""
+    """(title, published) as declared by the page; (None, None) if the page can't be fetched
+    or is a bot-check page instead of the article."""
     try:
         response = requests.get(url, headers=tools.HEADERS, timeout=20)
         response.raise_for_status()
@@ -71,6 +73,8 @@ def page_metadata(url: str) -> tuple[str | None, date | None]:
     soup = BeautifulSoup(response.text, "html.parser")
     og = soup.find("meta", attrs={"property": "og:title"})
     title = (og.get("content") if og else None) or (soup.title.string if soup.title else None)
+    if title and BOT_WALL.search(title):
+        return None, None
     return title, tools.page_published_date(response.text)
 
 

@@ -2,6 +2,8 @@
 
 Finds, ranks, and explains the top 3 recent technical articles from authoritative sources, personalized to my interests and reading history, as a 15–20 minute daily brief. Design: [ARCHITECTURE.md](ARCHITECTURE.md).
 
+**Deliverables walkthrough:** [demo.ipynb](demo.ipynb) covers the agent goals, architecture diagram, a live run of the prototype, sample results and the evaluation, with saved outputs.
+
 ## Run
 
 From this folder, after the repo-level setup in the [root README](../README.md):
@@ -20,10 +22,10 @@ Briefs are written to `briefs/YYYY-MM-DD.md`. Personal history and checkpoints l
 
 ## Sample results
 
-Three real daily runs (2026-10-30 to 2026-11-01), each rated afterwards:
+Four real daily runs (2026-10-30 to 2026-11-02). The first three were rated afterwards; the fourth, generated in [demo.ipynb](demo.ipynb), is the first to use those ratings:
 
-- Briefs: [2026-10-30](briefs/2026-10-30.md), [2026-10-31](briefs/2026-10-31.md), [2026-11-01](briefs/2026-11-01.md)
-- Evaluation: [eval_reports/eval_2026-11-01.md](eval_reports/eval_2026-11-01.md): 9/9 links and titles verified, LLM-judge faithfulness 4.33/5, precision@3 44%, all briefs within 15–20 minutes. The judge's scores vary a little between runs.
+- Briefs: [2026-10-30](briefs/2026-10-30.md), [2026-10-31](briefs/2026-10-31.md), [2026-11-01](briefs/2026-11-01.md), [2026-11-02](briefs/2026-11-02.md)
+- Evaluation: [eval_reports/eval_2026-11-01.md](eval_reports/eval_2026-11-01.md): 12/12 links resolve, every checkable title and date matches the page, LLM-judge faithfulness 4.33/5, precision@3 44%, all briefs within 15–20 minutes. The judge's scores vary a little between runs. Findings and limitations are in section 5.3 of the notebook.
 
 ## Configure
 
@@ -43,6 +45,7 @@ Three real daily runs (2026-10-30 to 2026-11-01), each rated afterwards:
 | Nodes (`nodes.py`) | done; full graph tested with a fake LLM and run live end to end (≈2 min per run) |
 | Prompts | revised after live runs |
 | Evaluation (`evaluate.py`) | done; tested offline and on live runs |
+| Demo notebook (`demo.ipynb`) | done; executed with a live run, outputs saved |
 | Source feed URLs (`sources.yaml`) | 20 feeds: AI/ML checked 2026-10-29, physics/astrophysics checked 2026-11-01 |
 
 ## API keys

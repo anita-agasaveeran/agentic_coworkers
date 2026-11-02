@@ -75,6 +75,16 @@ def test_reference_accuracy_with_network_checks(two_runs, monkeypatch):
     assert result["pages_unverifiable"] == 1
 
 
+def test_bot_check_page_is_unverifiable(monkeypatch):
+    class Response:
+        text = "<html><head><title>Radware Bot Manager Captcha</title></head></html>"
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(evaluate.requests, "get", lambda *a, **k: Response())
+    assert evaluate.page_metadata("https://doi.org/10.3847/x") == (None, None)
+
+
 @pytest.mark.parametrize("stored, page, expected", [
     ("The Art of Loop Engineering", "The Art of Loop Engineering | LangChain", True),
     ("Towards Reliable Generative Recommendation", "[2610.38378v1] Towards Reliable Generative Recommendation", True),
