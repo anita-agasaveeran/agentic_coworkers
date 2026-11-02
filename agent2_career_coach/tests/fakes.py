@@ -1,5 +1,6 @@
 """Fake LLM, postings, and scripted answers shared by the pipeline tests."""
 
+import random
 import re
 from datetime import date
 
@@ -68,6 +69,8 @@ CODING = dict(
     reference_solution="def add(a, b):\n    return a + b\n",
 )
 CORRECT_CODE = "def add(a, b):\n    return a + b\n"
+WORDS = ["latency", "embedding", "cache", "shard", "gradient", "recall", "tokenizer", "agent", "index", "photon",
+         "galaxy", "retry", "schema", "batch", "prior", "kernel", "queue", "vector", "rubric", "budget"]
 
 
 class FakeLLM:
@@ -105,7 +108,8 @@ class FakeLLM:
             return POSTINGS[url][1]
         if schema is GeneratedQuestion:
             if "follow-up question" in prompt:
-                return GeneratedQuestion(prompt=f"Follow-up #{self.count('GeneratedQuestion')}: why?",
+                words = " ".join(random.Random(-self.count("GeneratedQuestion")).choices(WORDS, k=12))
+                return GeneratedQuestion(prompt=f"Follow-up #{self.count('GeneratedQuestion')}: why {words}?",
                                          grounding_id=None, reference_answer="Because.",
                                          rubric=["reasoning", "accuracy"], hints=["think"], starter_code=None,
                                          tests=None, reference_solution=None)
@@ -114,7 +118,8 @@ class FakeLLM:
             extra = {**CODING, "tests": self.coding_tests} if kind == "coding" else \
                 dict(starter_code=None, tests=None, reference_solution=None)
             return GeneratedQuestion(
-                prompt=f"Q{self.count('GeneratedQuestion')} ({kind}) on {skill}?", grounding_id=1,
+                prompt=f"Q{self.count('GeneratedQuestion')} ({kind}) on {skill}: " + " ".join(
+                    random.Random(self.count("GeneratedQuestion")).choices(WORDS, k=12)) + "?", grounding_id=1,
                 reference_answer="A strong answer.", rubric=["correctness", "depth", "clarity"],
                 hints=["hint one", "hint two", "hint three"], **extra)
         if schema is Grade:

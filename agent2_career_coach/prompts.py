@@ -73,7 +73,14 @@ Candidate's answer:
 
 {test_results}
 
-Score each rubric criterion 1-5 (5 = as good as the reference or better, 1 = missing or wrong).
+Score each rubric criterion 1-5:
+5 = as good as the reference or better
+4 = correct, with minor gaps or imprecision
+3 = correct on the main point but incomplete: key details, cases, or reasons are missing
+2 = touches the criterion but is mostly wrong, or so vague it shows little understanding
+1 = missing or wrong
+An answer that gets the main idea right but is thin earns 3, not 2. Reserve 1-2 for answers
+that are wrong or say almost nothing.
 Judge the substance, not the length; credit correct approaches that differ from the reference.
 Name specific misconceptions, and give feedback the candidate can act on."""
 

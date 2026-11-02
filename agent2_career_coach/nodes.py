@@ -322,7 +322,7 @@ def load_profile(state: CoachState) -> dict:
         "opportunities": opportunities,
         "open_tasks": open_tasks,
         "discovery_due": due,
-        "plan_updates": [], "queries": [], "candidates": [], "rejected": [],
+        "plan_updates": [], "queries": [], "candidates": [], "rejected": [], "posting_texts": {},
         "questions": [], "assessments": [], "pending_answer": None, "quit": False,
     }
 
@@ -412,7 +412,7 @@ def analyze_requirements(state: CoachState) -> dict:
             items.append({"url": url, "title": None, "org": None, "type": None, "source": "Added by me",
                           "found_on": today, "snippet": ""})
     if not items:
-        return {}
+        return {"posting_texts": {}}
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         postings = list(pool.map(tools.load_posting, [i["url"] for i in items]))
@@ -434,7 +434,7 @@ def analyze_requirements(state: CoachState) -> dict:
     ) for item, posting in readable]
     analyses = structured(PostingAnalysis).batch(requests_, return_exceptions=True)
 
-    new = []
+    new, texts = [], {}
     for (item, posting), analysis in zip(readable, analyses):
         if isinstance(analysis, Exception):
             log.warning("posting analysis failed: %s (%s)", item["url"], analysis)
@@ -458,9 +458,10 @@ def analyze_requirements(state: CoachState) -> dict:
         ) for r in analysis.requirements if r.skill.strip()])
         new.append({**opportunity, "requirements": requirements,
                     "fit_score": fit_score(requirements, opportunity["type"], profile)})
+        texts[item["url"]] = posting["text"][:config.MAX_POSTING_CHARS]
     log.info("analyzed %d postings: %d kept, %d dropped", len(items), len(new), len(rejected))
     ranked = sorted(stored + new, key=lambda o: o.get("fit_score") or 0, reverse=True)
-    return {"opportunities": ranked, "rejected": rejected}
+    return {"opportunities": ranked, "rejected": rejected, "posting_texts": texts}
 
 
 def assess_readiness(state: CoachState) -> dict:
@@ -591,13 +592,14 @@ def generate_question(state: CoachState) -> dict:
         grounding=grounding, reference_answer=out.reference_answer.strip(),
         rubric=clean_list(out.rubric, 4) or ["correctness", "completeness", "clarity"],
         hints=clean_list(out.hints, config.HINTS_PER_QUESTION),
-        starter_code=None, tests=None, workspace_file=None, parent_id=None,
+        starter_code=None, tests=None, reference_solution=None, workspace_file=None, parent_id=None,
     )
     if kind == "coding":
         config.WORKSPACE_DIR.mkdir(exist_ok=True)
         path = config.WORKSPACE_DIR / f"{qid}.py"
         path.write_text(out.starter_code or "# Write your solution here.\n")
-        question.update(starter_code=out.starter_code, tests=tests, workspace_file=str(path))
+        question.update(starter_code=out.starter_code, tests=tests, reference_solution=out.reference_solution,
+                        workspace_file=str(path))
     return {"questions": questions + [question]}
 
 
@@ -637,6 +639,16 @@ def match_criteria(rubric: list[str], grade: Grade) -> dict[str, int]:
     return scores
 
 
+def grade(question: Question, answer: str, test_text: str = "") -> tuple[dict[str, int], Grade]:
+    """LLM (Grade) rubric scores for one answer; shared with evaluate.py's grader check."""
+    out = structured(Grade).invoke(prompts.GRADE_ANSWER.format(
+        kind=question["kind"], skill=question["skill"], difficulty=question["difficulty"],
+        question=question["prompt"], reference_answer=question["reference_answer"],
+        rubric="\n".join(f"- {c}" for c in question["rubric"]), answer=answer, test_results=test_text,
+    ))
+    return match_criteria(question["rubric"], out), out
+
+
 def grade_answer(state: CoachState) -> dict:
     """Grade `pending_answer` against the latest question.
 
@@ -663,17 +675,12 @@ def grade_answer(state: CoachState) -> dict:
         status = " (timed out)" if result["timed_out"] else ""
         test_text = (f"Test results{status}: {result['passed']}/{result['total']} passed.\n"
                      f"{result['output'][-1500:]}")
-    grade = structured(Grade).invoke(prompts.GRADE_ANSWER.format(
-        kind=question["kind"], skill=question["skill"], difficulty=question["difficulty"],
-        question=question["prompt"], reference_answer=question["reference_answer"],
-        rubric="\n".join(f"- {c}" for c in question["rubric"]), answer=answer, test_results=test_text,
-    ))
-    criteria = match_criteria(question["rubric"], grade)
+    criteria, out = grade(question, answer, test_text)
     return {"assessments": assessments + [Assessment(
         question_id=question["id"], action="answered", answer=answer, hints_used=hints_used,
         criteria_scores=criteria, tests_passed=tests_passed,
         score=answer_score(question["kind"], criteria, tests_passed, hints_used),
-        feedback=grade.feedback.strip(), misconceptions=clean_list(grade.misconceptions, 5),
+        feedback=out.feedback.strip(), misconceptions=clean_list(out.misconceptions, 5),
     )]}
 
 
@@ -714,7 +721,7 @@ def generate_follow_up(state: CoachState) -> dict:
         prompt=out.prompt.strip(), grounding=parent.get("grounding"), reference_answer=out.reference_answer.strip(),
         rubric=clean_list(out.rubric, 3) or ["correctness", "reasoning"],
         hints=clean_list(out.hints, config.HINTS_PER_QUESTION),
-        starter_code=None, tests=None, workspace_file=None, parent_id=root,
+        starter_code=None, tests=None, reference_solution=None, workspace_file=None, parent_id=root,
     )
     return {"questions": questions + [follow_up]}
 
@@ -1087,6 +1094,7 @@ def update_memory(state: CoachState) -> dict:
     conn = memory.connect()
     try:
         memory.record_opportunities(conn, state.get("opportunities", []) + state.get("rejected", []))
+        memory.record_posting_texts(conn, session_date, state.get("posting_texts", {}))
         memory.record_session(conn, session_date, state.get("questions", []), state.get("assessments", []))
         if state.get("readiness_after"):
             memory.record_readiness(conn, session_date, state["readiness_after"], set(state.get("assessed_after", [])))

@@ -59,6 +59,12 @@ CREATE TABLE IF NOT EXISTS assessments (
     misconceptions  TEXT             -- JSON list
 );
 
+CREATE TABLE IF NOT EXISTS posting_texts (
+    url        TEXT PRIMARY KEY REFERENCES opportunities(url),
+    text       TEXT NOT NULL,     -- the text requirements were extracted from (evaluation)
+    fetched_on TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS skill_history (
     skill        TEXT NOT NULL,
     session_date TEXT NOT NULL,
@@ -252,6 +258,17 @@ def record_opportunities(conn: sqlite3.Connection, opportunities: list[Opportuni
                 [(o["url"], r["skill"], r["level"], int(r["required"]), r["evidence"])
                  for r in o.get("requirements", [])],
             )
+
+
+def record_posting_texts(conn: sqlite3.Connection, session_date: date, texts: dict[str, str]) -> None:
+    """Store the posting text each kept opportunity's requirements were extracted from."""
+    with conn:
+        conn.executemany("INSERT OR REPLACE INTO posting_texts (url, text, fetched_on) VALUES (?, ?, ?)",
+                         [(url, text, session_date.isoformat()) for url, text in texts.items()])
+
+
+def posting_texts(conn: sqlite3.Connection) -> dict[str, str]:
+    return {r["url"]: r["text"] for r in conn.execute("SELECT url, text FROM posting_texts")}
 
 
 def record_session(conn: sqlite3.Connection, session_date: date,

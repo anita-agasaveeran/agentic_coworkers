@@ -12,7 +12,8 @@ From this folder, after the repo-level setup in the [root README](../README.md):
 ../.venv/bin/python agent.py --questions 3           # shorter session
 ../.venv/bin/python agent.py --add-posting <url>     # analyze a posting found elsewhere (repeatable)
 ../.venv/bin/python agent.py --report-only           # report from stored data, no questions
-../.venv/bin/python evaluate.py
+../.venv/bin/python evaluate.py                      # writes eval_reports/eval_YYYY-MM-DD.md
+../.venv/bin/python evaluate.py --no-llm --no-network   # free, offline metrics only
 ../.venv/bin/python -m pytest
 ```
 
@@ -43,7 +44,8 @@ Page loading, link checks, and arXiv search reuse Agent 1's `tools.py`. Agent 1'
 | New tools (`search_opportunities`, `search_resources`, `load_posting`, `posting_is_open`, `run_tests`) | done; tested offline and checked live 2026-11-01 |
 | Nodes and scoring (§7) | done; tested with a fake LLM, one live session run 2026-11-01 |
 | Memory read/write helpers | done |
-| Evaluation (`evaluate.py`) and calibration set | stubs |
+| Evaluation (`evaluate.py`) | done; tested offline, run on the live session 2026-11-01 |
+| Calibration set (`eval/calibration.jsonl`) | 15 labeled answers; partial and wrong labels scored by rubric criterion after the first grader run (see ARCHITECTURE §10) |
 | Opportunity source domains | checked 2026-11-01 |
 
 ## API keys

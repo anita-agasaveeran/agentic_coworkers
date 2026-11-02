@@ -43,6 +43,7 @@ class Question(TypedDict, total=False):
     hints: list[str]         # shown one at a time on request
     starter_code: str | None     # coding only
     tests: str | None            # coding only (pytest), validated against the reference solution
+    reference_solution: str | None   # coding only; hidden from me, kept for evaluate.py
     workspace_file: str | None   # coding only: file I edit
     parent_id: str | None        # set on follow-ups
 
@@ -92,6 +93,7 @@ class CoachState(TypedDict, total=False):
     candidates: list[Opportunity]     # newly discovered, not yet analyzed
     opportunities: list[Opportunity]  # stored + newly analyzed, ranked by fit
     rejected: list[Opportunity]       # analyzed and dropped (stored so they aren't analyzed again)
+    posting_texts: dict[str, str]     # url -> text the requirements were extracted from (kept postings)
     skill_demand: dict[str, float]    # skill -> 0-1
     skill_targets: dict[str, int]     # skill -> highest level asked (1-3)
     readiness: dict[str, float]       # skill -> 0-1 before this session
