@@ -1,0 +1,43 @@
+{
+  "_note": "Seeded from Agent 1's profile. Fill in constraints, timelines left null, and projects before the first run. The entrepreneurial target is there because the assignment asks for those opportunities; lower or raise its priority. Skill ids must match skills.yaml; self-rated levels are used until a skill is assessed.",
+  "name": "Anita",
+  "role": "MS Software Engineering student, SJSU",
+  "education": [
+    "BS in Astrophysics",
+    "MS in Software Engineering, SJSU (in progress)"
+  ],
+  "targets": [
+    {"role": "ML / AI engineer intern", "type": "internship", "timeline": "summer 2027", "priority": 1.0},
+    {"role": "Applied AI / LLM agent engineer", "type": "job", "timeline": null, "priority": 0.6},
+    {"role": "Physics / astrophysics research assistant (ML for astronomy)", "type": "research", "timeline": null, "priority": 0.8},
+    {"role": "Physics / astrophysics PhD program", "type": "research", "timeline": null, "priority": 0.8},
+    {"role": "AI startup programs and hackathons", "type": "entrepreneurial", "timeline": null, "priority": 0.3}
+  ],
+  "constraints": {
+    "locations": null,
+    "remote_ok": null,
+    "work_authorization": null,
+    "earliest_start": null
+  },
+  "skills": {
+    "python": "advanced",
+    "software_engineering": "advanced",
+    "git": "advanced",
+    "machine_learning": "intermediate",
+    "deep_learning": "intermediate",
+    "probability_statistics": "intermediate",
+    "linear_algebra_calculus": "advanced",
+    "sql": "intermediate",
+    "cloud_platforms": "beginner",
+    "langgraph": "beginner",
+    "physics_fundamentals": "advanced",
+    "astrophysics": "advanced",
+    "observational_data_analysis": "intermediate",
+    "scientific_python": "intermediate"
+  },
+  "projects": [],
+  "session_preferences": {
+    "question_minutes": 5,
+    "coding_language": "python"
+  }
+}

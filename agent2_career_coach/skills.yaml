@@ -1,0 +1,41 @@
+# Canonical skill taxonomy. Posting requirements are mapped to these ids so demand and
+# readiness can be combined across postings. Aliases are lowercase; unmapped skills are
+# stored as "other:<name>" and listed by evaluate.py so the taxonomy can grow.
+
+areas:
+  programming:
+    python: [python3, python programming]
+    algorithms_data_structures: [algorithms, data structures, dsa, coding interviews]
+    software_engineering: [software design, object-oriented programming, design patterns, code review]
+    testing: [unit testing, pytest, test-driven development]
+    git: [git and version control, version control, github]
+    sql: [postgresql, mysql, relational databases]
+  ml:
+    machine_learning: [ml, scikit-learn, sklearn, supervised learning]
+    deep_learning: [neural networks, pytorch, tensorflow, jax]
+    model_evaluation: [evaluation metrics, cross-validation, a/b testing]
+    recommender_systems: [recommendation systems, recsys, ranking]
+    data_analysis: [pandas, data wrangling, exploratory data analysis, feature engineering]
+    probability_statistics: [probability and statistics, statistics, probability, bayesian inference]
+    linear_algebra_calculus: [linear algebra, calculus, differential equations, "linear algebra, calculus, and differential equations"]
+  llm:
+    llm_fundamentals: [large language models, llm, transformers, prompt engineering]
+    rag: [retrieval-augmented generation, retrieval augmented generation, vector databases, embeddings]
+    llm_agents: [agents, ai agents, multi-agent systems, agentic ai, tool use, llm agents and multi-agent systems]
+    langgraph: [langchain]
+    llm_evaluation: [llm evaluation, evals, llm-as-judge]
+    fine_tuning: [fine-tuning, lora, peft]
+  systems:
+    system_design: [distributed systems, scalability, system architecture]
+    cloud_platforms: ["cloud platforms (aws, gcp, azure)", aws, gcp, google cloud, azure, cloud]
+    mlops: [ml deployment, model serving, docker, kubernetes, ci/cd]
+    backend_apis: [rest api, fastapi, flask, backend development]
+  science:
+    physics_fundamentals: ["physics fundamentals (mechanics, e&m, quantum, thermo)", mechanics, electromagnetism, quantum mechanics, thermodynamics]
+    astrophysics: [astronomy, cosmology, galaxies, stellar astrophysics]
+    observational_data_analysis: [observational and data analysis methods, data reduction, photometry, spectroscopy]
+    scientific_python: ["scientific python (numpy, scipy, astropy)", numpy, scipy, astropy]
+    ml_for_science: [machine learning for physics and astronomy, ml for astronomy, simulation-based inference]
+    research_methods: [research experience, scientific writing, publications, literature review]
+  communication:
+    technical_communication: [communication, presentations, technical writing]

@@ -20,6 +20,10 @@ venv/
 **/data/*.sqlite
 **/data/*.json
 
+# Agent 2 personal files
+agent2_career_coach/resume.md
+agent2_career_coach/workspace/
+
 # OS / editor
 .DS_Store
 .vscode/

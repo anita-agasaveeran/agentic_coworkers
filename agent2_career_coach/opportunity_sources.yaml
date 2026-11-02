@@ -1,0 +1,78 @@
+# Allow-listed domains for nextLevelPersonalCoachForCareerLevel.
+#
+# types:   which opportunity types a source is searched for
+# domains: used for Tavily include_domains and for the allow-list filter (subdomains match)
+# Checked 2026-11-01. Job-board roots (Ashby, Workday) don't serve a page themselves;
+# postings live on subdomains or company paths. AAS and APS block scripts (403) but exist.
+# LinkedIn and Handshake are not searched: login required and their terms forbid scraping.
+# Add a posting from them with `python agent.py --add-posting <url>`.
+
+opportunity_sources:
+  - name: Greenhouse
+    types: [internship, job]
+    domains: [job-boards.greenhouse.io, boards.greenhouse.io]
+
+  - name: Lever
+    types: [internship, job]
+    domains: [jobs.lever.co]
+
+  - name: Ashby
+    types: [internship, job]
+    domains: [jobs.ashbyhq.com]
+
+  - name: Workday
+    types: [internship, job]
+    domains: [myworkdayjobs.com]
+
+  - name: NASA internships
+    types: [internship, research]
+    domains: [intern.nasa.gov]
+
+  - name: NSF REU
+    types: [research]
+    domains: [nsf.gov]
+
+  - name: AAS Job Register
+    types: [research, job]
+    domains: [jobregister.aas.org]
+
+  - name: APS careers
+    types: [research, job]
+    domains: [aps.org]
+
+  - name: Y Combinator
+    types: [entrepreneurial]
+    domains: [ycombinator.com]
+
+  - name: Devpost hackathons
+    types: [entrepreneurial]
+    domains: [devpost.com]
+
+  - name: SBIR / STTR
+    types: [entrepreneurial]
+    domains: [sbir.gov]
+
+  - name: SJSU
+    types: [research, entrepreneurial]
+    domains: [sjsu.edu]
+
+# Learning resources for preparation plans (plus Agent 1's sources.yaml and arXiv).
+resource_sources:
+  - name: LangChain / LangGraph docs
+    domains: [docs.langchain.com]
+  - name: PyTorch docs
+    domains: [pytorch.org]
+  - name: scikit-learn docs
+    domains: [scikit-learn.org]
+  - name: Hugging Face Learn
+    domains: [huggingface.co]
+  - name: Google ML courses
+    domains: [developers.google.com]
+  - name: Microsoft Learn
+    domains: [learn.microsoft.com]
+  - name: AWS docs
+    domains: [docs.aws.amazon.com]
+  - name: Astropy docs
+    domains: [docs.astropy.org]
+
+arxiv_categories: [cs.LG, cs.AI, cs.CL, astro-ph.IM, astro-ph.GA, astro-ph.CO]

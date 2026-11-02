@@ -5,7 +5,7 @@ CMPE 256 (SJSU, Fall 2026) assignment: two personalized agentic AI coworkers bui
 | Agent | Goal | Status |
 |---|---|---|
 | [DailyTechUpgradeAgent](agent1_daily_tech_upgrade/) | Recommend, summarize, and explain the top 3 technical articles each day for a 15–20 minute learning session | Scaffolded ([architecture](agent1_daily_tech_upgrade/ARCHITECTURE.md)); nodes not implemented |
-| nextLevelPersonalCoachForCareerLevel | Personalized career coach: find opportunities, assess readiness, run interactive practice, track progress | Not started |
+| [nextLevelPersonalCoachForCareerLevel](agent2_career_coach/) | Personalized career coach: find opportunities, assess readiness, run interactive practice, track progress | Scaffolded ([architecture](agent2_career_coach/ARCHITECTURE.md), [status](agent2_career_coach/README.md#implementation-status)); nodes not implemented |
 
 ## Setup
 
