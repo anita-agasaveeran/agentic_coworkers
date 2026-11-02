@@ -184,12 +184,14 @@ The question loop needs no counters in state: the next slot is the number of top
 
 | Tool | Purpose |
 |---|---|
-| `search_web(query, domains, days)` | Tavily search restricted to allow-listed domains (reused from Agent 1). |
-| `load_page(url)` | Main-text extraction with Tavily extract fallback (reused). |
+| `search_opportunities(query, type, sources, days)` | Tavily search over the allow-listed sources for one opportunity type. Job-board results must match the source's `posting_path` (single postings, not company boards); job-board titles are cleaned and the organization is taken from the title when it names one. Tavily doesn't date job-board pages, so `days` sets its time range rather than filtering. |
+| `search_resources(query, sources)` | Tavily search over the allow-listed learning-resource domains. |
+| `load_posting(url)` | Posting text. Workday postings (rendered by JavaScript) come from Workday's JSON endpoint, which also reports whether the posting still accepts applications; other pages use `load_page`. |
+| `load_page(url)` | Main-text extraction with Tavily extract fallback (reused from Agent 1). |
 | `search_arxiv(query, categories, since)` | Research directions for research targets, and papers as learning resources (reused). |
 | `url_resolves(url)` | Link check for opportunities and resources (reused). |
-| `posting_is_open(page_text, deadline)` | Code check for "no longer accepting applications" text and past deadlines. |
-| `run_tests(code_path, tests, timeout)` | Runs pytest on my solution in a temporary directory via subprocess, with a time limit; returns pass/fail per test and stderr. |
+| `posting_is_open(posting, deadline, today)` | Closed if the deadline has passed, the job board says so, or the text says so ("no longer accepting applications", "position has been filled", ...). |
+| `run_tests(code, tests, timeout)` | Runs pytest on my solution in a temporary directory via subprocess, with a time limit and no API keys in its environment; returns per-test pass/fail (JUnit XML), pass rate, and trimmed output. |
 
 **Opportunity sources** (`opportunity_sources.yaml`, checked 2026-11-01; all searched with Tavily `include_domains`):
 

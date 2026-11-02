@@ -2,6 +2,8 @@
 #
 # types:   which opportunity types a source is searched for
 # domains: used for Tavily include_domains and for the allow-list filter (subdomains match)
+# posting_path (job boards): regex a single posting's URL path must match; drops company
+#          boards and other listing pages
 # Checked 2026-11-01. Job-board roots (Ashby, Workday) don't serve a page themselves;
 # postings live on subdomains or company paths. AAS and APS block scripts (403) but exist.
 # LinkedIn and Handshake are not searched: login required and their terms forbid scraping.
@@ -11,18 +13,22 @@ opportunity_sources:
   - name: Greenhouse
     types: [internship, job]
     domains: [job-boards.greenhouse.io, boards.greenhouse.io]
+    posting_path: '^/[^/]+/jobs/\d+'
 
   - name: Lever
     types: [internship, job]
     domains: [jobs.lever.co]
+    posting_path: '^/[^/]+/[0-9a-f-]{36}'
 
   - name: Ashby
     types: [internship, job]
     domains: [jobs.ashbyhq.com]
+    posting_path: '^/[^/]+/[0-9a-f-]{36}'
 
   - name: Workday
     types: [internship, job]
     domains: [myworkdayjobs.com]
+    posting_path: '/job/'
 
   - name: NASA internships
     types: [internship, research]

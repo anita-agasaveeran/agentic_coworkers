@@ -135,7 +135,7 @@ def plan_opportunity_queries(state: CoachState) -> dict:
 
 
 def discover_opportunities(state: CoachState) -> dict:
-    """Run tools.search_opportunities per query over the sources for its type (SEARCH_DAYS window).
+    """Run tools.search_opportunities for each query and its type (SEARCH_DAYS window).
 
     Drops URLs already in career.db and duplicates. A failing search is logged and skipped.
     Returns: {"candidates": [...]}
@@ -144,7 +144,8 @@ def discover_opportunities(state: CoachState) -> dict:
 
 
 def analyze_requirements(state: CoachState) -> dict:
-    """Load each candidate and --add-posting URL; LLM (PostingAnalysis) extracts requirements.
+    """Load each candidate and --add-posting URL (tools.load_posting); LLM (PostingAnalysis)
+    extracts requirements.
 
     Drops non-postings, closed postings (tools.posting_is_open), and ineligible ones; maps skills
     to skills.yaml ids; computes fit_score (target priority x skill overlap). Merges with the stored
@@ -208,7 +209,7 @@ def grade_answer(state: CoachState) -> dict:
 
     quit -> {"quit": True} with no assessment. skip -> an Assessment with action "skipped" and no
     score (not used for readiness). Otherwise LLM (Grade) scores the rubric; coding answers also run
-    tools.run_tests on the workspace file. answer_score() computes the 0-1 score.
+    tools.run_tests on the code read from the workspace file. answer_score() computes the 0-1 score.
     Returns: {"assessments": assessments + [new]} or {"quit": True}
     """
     raise NotImplementedError
