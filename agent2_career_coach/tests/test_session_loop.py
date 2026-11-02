@@ -27,7 +27,8 @@ def stub_nodes(tmp_path, monkeypatch):
         reply = state["pending_answer"]
         if reply["action"] == "quit":
             return {"quit": True}
-        return {"assessments": state["assessments"] + [{"action": "answered", "score": 0.3, "answer": reply["answer"]}]}
+        return {"assessments": state["assessments"] + [{"question_id": state["questions"][-1]["id"], "action": "answered",
+                                                        "score": 0.3, "answer": reply["answer"], "feedback": "ok"}]}
 
     stand_ins = {
         "load_profile": lambda s: {"open_tasks": [], "discovery_due": False, "questions": [],

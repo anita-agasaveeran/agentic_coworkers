@@ -10,6 +10,7 @@ An unfinished session for the same date (e.g. the terminal was closed mid-questi
 """
 
 import argparse
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -89,8 +90,19 @@ def read_text_answer() -> str:
         lines.append(line)
 
 
+def show_grade(grade: dict | None) -> None:
+    """Feedback on the previous answer, shown before the next question."""
+    if not grade or grade.get("action") != "answered":
+        return
+    tests = f" · tests {round(grade['tests_passed'] * 100)}%" if grade.get("tests_passed") is not None else ""
+    print(f"\nScore {grade['score']:.2f}{tests}. {grade['feedback']}")
+    for m in grade.get("misconceptions") or []:
+        print(f"  - {m}")
+
+
 def ask_question(payload: dict) -> dict:
     """Show a question, handle hint/skip/quit, and return the answer for grade_answer."""
+    show_grade(payload.get("previous"))
     q = payload["question"]
     label = "Follow-up" if q.get("parent_id") else f"Question {payload['number']}/{payload['total']}"
     print(f"\n{label} · {q['skill']} · {q['kind']} · difficulty {q['difficulty']}\n\n{q['prompt']}\n")
@@ -158,10 +170,16 @@ def main():
                         help="analyze a posting found elsewhere (repeatable)")
     parser.add_argument("--report-only", action="store_true", help="report from stored data, no questions")
     args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    for noisy in ("httpx", "httpcore", "urllib3"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     result = run(args.date, refresh=args.refresh, extra_postings=args.add_posting,
                  session_size=0 if args.report_only else args.questions)
     print(result.get("report_markdown", ""))
+    for key in ("report_path", "transcript_path"):
+        if result.get(key):
+            print(f"Saved {result[key]}")
 
 
 if __name__ == "__main__":

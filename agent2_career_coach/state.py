@@ -28,6 +28,7 @@ class Opportunity(TypedDict, total=False):
     found_on: date
     requirements: list[SkillReq]
     fit_score: float         # 0-1
+    status: str              # open | closed | dismissed (closed / not a posting / ineligible / unreadable)
 
 
 class Question(TypedDict, total=False):
@@ -90,17 +91,23 @@ class CoachState(TypedDict, total=False):
     queries: list[dict]               # {"type", "query"}
     candidates: list[Opportunity]     # newly discovered, not yet analyzed
     opportunities: list[Opportunity]  # stored + newly analyzed, ranked by fit
+    rejected: list[Opportunity]       # analyzed and dropped (stored so they aren't analyzed again)
     skill_demand: dict[str, float]    # skill -> 0-1
     skill_targets: dict[str, int]     # skill -> highest level asked (1-3)
     readiness: dict[str, float]       # skill -> 0-1 before this session
+    assessed_skills: list[str]        # skills with assessments (others are self-rated)
+    previous: dict                    # {"date", "readiness"} from the last session, for deltas
+    weak_skills: list[str]            # latest session's mean score below PROBE_BELOW (retest candidates)
     session_plan: list[dict]          # [{"skill", "kind", "difficulty"}]
     questions: list[Question]
     pending_answer: dict              # resume value from ask_and_collect_answer
     assessments: list[Assessment]
     quit: bool                        # I ended the question loop early
     readiness_after: dict[str, float]
+    assessed_after: list[str]
     strengths: list[dict]             # {"skill", "summary", "evidence": [...]}
     gaps: list[dict]
+    requirement_refs: dict[str, str]  # "R<n>" -> posting requirement cited by strengths and gaps
     resources: list[Resource]
     prep_plan: list[PlanTask]
     report_markdown: str
@@ -131,6 +138,8 @@ class SkillRequirement(BaseModel):
 
 class PostingAnalysis(BaseModel):
     is_posting: bool = Field(description="False if the page is not a single opportunity (listing, article, error page)")
+    title: str | None = Field(description="Role or program title copied exactly from the page")
+    type: OpportunityType = Field(description="internship, job, research (positions and graduate programs), or entrepreneurial")
     org: str | None = Field(description="Hiring organization, program, or lab as written on the page")
     location: str | None
     deadline: str | None = Field(description="Application deadline as ISO date if the page states one, else null")

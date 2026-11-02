@@ -35,14 +35,14 @@ Page loading, link checks, and arXiv search reuse Agent 1's `tools.py`. Agent 1'
 
 | Part | Status |
 |---|---|
-| Graph wiring, routing, check-in and question interrupts, CLI, session resume | done; tested with stand-in nodes |
+| Graph wiring, routing, check-in and question interrupts, CLI, session resume | done |
 | State and structured-output schemas | done |
 | SQLite schema | done |
 | Prompts | drafted |
 | Agent 1 tool reuse (`load_page`, `url_resolves`, `search_arxiv`) | done |
 | New tools (`search_opportunities`, `search_resources`, `load_posting`, `posting_is_open`, `run_tests`) | done; tested offline and checked live 2026-11-01 |
-| Nodes (`nodes.py`, except routing and interrupts) and scoring helpers | stubs |
-| Memory read/write helpers | stubs |
+| Nodes and scoring (§7) | done; tested with a fake LLM, one live session run 2026-11-01 |
+| Memory read/write helpers | done |
 | Evaluation (`evaluate.py`) and calibration set | stubs |
 | Opportunity source domains | checked 2026-11-01 |
 

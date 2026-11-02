@@ -31,6 +31,7 @@ OPPORTUNITY_MAX_AGE_DAYS = 7      # rediscover when the newest stored opportunit
 SEARCH_DAYS = 30                  # posting recency window for web search
 NUM_QUERIES = (4, 8)              # min/max queries from plan_opportunity_queries
 MAX_RESULTS_PER_QUERY = 8
+MAX_CANDIDATES = 20               # new postings analyzed per discovery (one LLM call each)
 MAX_OPPORTUNITIES = 10            # top opportunities by fit used for skill demand and the report
 MAX_POSTING_CHARS = 30_000        # cap on posting text sent for skill extraction
 
@@ -42,6 +43,13 @@ PROBE_BELOW = 0.6                 # follow up on the misconception below this sc
 CHALLENGE_AT = 0.85               # follow up with a harder variant at or above this score
 HINTS_PER_QUESTION = 2
 HINT_PENALTY = 0.1
+# Skills that get coding exercises (Python, standard library + numpy); others get text questions.
+CODING_SKILLS = {
+    "python", "algorithms_data_structures", "software_engineering", "testing", "machine_learning",
+    "deep_learning", "model_evaluation", "recommender_systems", "data_analysis", "probability_statistics",
+    "linear_algebra_calculus", "rag", "llm_evaluation", "scientific_python", "observational_data_analysis",
+    "ml_for_science", "physics_fundamentals",
+}
 REPEAT_SIMILARITY = 0.9           # reject generated questions this similar to a past one
 CODE_TIMEOUT_SECONDS = 10
 
@@ -53,12 +61,17 @@ SELF_RATED_READINESS = {"beginner": 0.3, "intermediate": 0.5, "advanced": 0.7}
 REQUIRED_WEIGHT = {True: 1.0, False: 0.5}
 READINESS_HALF_LIFE_DAYS = 21
 READING_BONUS = 0.05              # max readiness added from Agent 1 reading
+READING_FULL_AT = 5               # articles read on a skill for the full reading bonus
+FIT_FLOOR = 0.5                   # fit = priority x (FIT_FLOOR + (1 - FIT_FLOOR) x skill overlap)
 DIFFICULTY_BANDS = ((0.4, 1), (0.7, 2), (1.01, 3))   # readiness below bound -> question difficulty
 
 # --- Preparation plan --------------------------------------------------------
 PLAN_DAYS = 14
 PLAN_GAPS = 4                     # gaps covered by resources and plan tasks
 RESOURCES_PER_GAP = 2
+PLAN_MAX_HOURS = 20               # total hours of new tasks per plan
+ARXIV_RESOURCE_DAYS = 365         # paper age limit for research-skill resources
+RESEARCH_AREAS = ("science",)     # skills.yaml areas whose resources include arXiv papers
 
 # --- Models ------------------------------------------------------------------
 # Same provider-swappable settings as Agent 1. Don't pass temperature/top_p:

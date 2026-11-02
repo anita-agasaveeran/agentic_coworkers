@@ -49,6 +49,7 @@ opportunity_sources:
   - name: Y Combinator
     types: [entrepreneurial]
     domains: [ycombinator.com]
+    posting_path: '^/(apply|companies/[^/]+/jobs/)'
 
   - name: Devpost hackathons
     types: [entrepreneurial]

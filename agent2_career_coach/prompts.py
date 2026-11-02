@@ -54,7 +54,7 @@ KIND_INSTRUCTIONS = {
                  "trade-off decision) tied to the target roles, and ask what the candidate would do and why."),
     "coding": ("Write a self-contained Python exercise solvable in about 15 minutes. Give starter_code with the "
                "function signature and docstring, pytest tests that do `from solution import <function>`, and "
-               "a reference_solution that passes every test. No network, files, or third-party packages."),
+               "a reference_solution that passes every test. Standard library and numpy only; no network or files."),
 }
 
 GRADE_ANSWER = """Grade a candidate's answer in a practice interview.
@@ -86,7 +86,9 @@ Misconceptions found: {misconceptions}
 
 {mode_instructions}
 
-Write the follow-up with a reference answer, a 2-3 criterion rubric, and {hints} hints."""
+The follow-up is answered in a few paragraphs of text, not code to run (leave starter_code,
+tests, and reference_solution null). Write it with a reference answer, a 2-3 criterion rubric,
+and {hints} hints. grounding_id is null."""
 
 FOLLOW_UP_MODES = {
     "probe": ("The answer was weak. Ask a probing question that makes the candidate confront the main "

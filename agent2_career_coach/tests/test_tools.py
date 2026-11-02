@@ -58,6 +58,8 @@ def test_posting_title(title, expected):
     ("Workday", "https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite", False),
     ("NSF REU", "https://www.nsf.gov/funding/initiatives/reu/students", True),
     ("NSF REU", "https://www.nsf.gov/search?q=reu", False),
+    ("Y Combinator", "https://www.ycombinator.com/companies/acme/jobs/123-ml-engineer", True),
+    ("Y Combinator", "https://www.ycombinator.com/companies/industry/machine-learning", False),
 ])
 def test_is_posting_url(name, url, expected):
     assert tools.is_posting_url(url, source(name)) is expected
