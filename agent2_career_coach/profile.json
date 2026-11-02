@@ -1,5 +1,4 @@
 {
-  "_note": "Seeded from Agent 1's profile. Fill in constraints, timelines left null, and projects before the first run. The entrepreneurial target is there because the assignment asks for those opportunities; lower or raise its priority. Skill ids must match skills.yaml; self-rated levels are used until a skill is assessed.",
   "name": "Anita",
   "role": "MS Software Engineering student, SJSU",
   "education": [
@@ -9,15 +8,15 @@
   "targets": [
     {"role": "ML / AI engineer intern", "type": "internship", "timeline": "summer 2027", "priority": 1.0},
     {"role": "Applied AI / LLM agent engineer", "type": "job", "timeline": null, "priority": 0.6},
-    {"role": "Physics / astrophysics research assistant (ML for astronomy)", "type": "research", "timeline": null, "priority": 0.8},
-    {"role": "Physics / astrophysics PhD program", "type": "research", "timeline": null, "priority": 0.8},
+    {"role": "Physics / astrophysics research assistant (ML for astronomy)", "type": "research", "timeline": "summer 2027", "priority": 0.9},
+    {"role": "Physics / astrophysics PhD program", "type": "research", "timeline": "fall 2028", "priority": 0.8},
     {"role": "AI startup programs and hackathons", "type": "entrepreneurial", "timeline": null, "priority": 0.3}
   ],
   "constraints": {
-    "locations": null,
-    "remote_ok": null,
-    "work_authorization": null,
-    "earliest_start": null
+    "locations": ["San Francisco Bay Area, CA (internships and jobs)", "Europe (research)", "anywhere in the US (research)"],
+    "remote_ok": true,
+    "work_authorization": "US citizen",
+    "earliest_start": "immediately"
   },
   "skills": {
     "python": "advanced",
@@ -31,11 +30,11 @@
     "cloud_platforms": "beginner",
     "langgraph": "beginner",
     "physics_fundamentals": "advanced",
-    "astrophysics": "advanced",
+    "astrophysics": "intermediate",
     "observational_data_analysis": "intermediate",
     "scientific_python": "intermediate"
   },
-  "projects": [],
+  "projects": ["Implementing machine learning classification and regression models to reduce computational cost of particle energy estimation", "On Using Neutrino-Driven Supernova Simulation to Interpret Observations", "Visualization and Interpolation of Field Mapping Data", "AI-Powered Cat Trap Game"],
   "session_preferences": {
     "question_minutes": 5,
     "coding_language": "python"
